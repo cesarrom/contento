@@ -1,0 +1,12 @@
+.git
+.gitignore
+.env*
+!.env.example
+node_modules
+.next
+worker
+drizzle
+README.md
+PLAN.md
+*.md
+.windsurf
