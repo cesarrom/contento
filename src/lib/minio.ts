@@ -93,6 +93,27 @@ export async function presignDownload(
   return internalUrl.replace(endpoint, publicEndpoint);
 }
 
+export async function getObject(
+  bucketName: string,
+  key: string
+): Promise<NodeJS.ReadableStream> {
+  const result = await s3.send(
+    new GetObjectCommand({ Bucket: bucketName, Key: key })
+  );
+  if (!result.Body) throw new Error(`Empty body for ${bucketName}/${key}`);
+  return result.Body as unknown as NodeJS.ReadableStream;
+}
+
+export async function putObject(
+  bucketName: string,
+  key: string,
+  body: Buffer
+): Promise<void> {
+  await s3.send(
+    new PutObjectCommand({ Bucket: bucketName, Key: key, Body: body })
+  );
+}
+
 export async function deleteObject(
   bucketName: string,
   key: string

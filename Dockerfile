@@ -1,4 +1,13 @@
+# ── Full-codec static FFmpeg binary ───────────────────────────────────────────
+# mwader/static-ffmpeg is compiled with ALL codecs:
+# H.264, H.265, VP8/9, AV1, AAC, MP3, Opus, Vorbis, FLAC, AC3, etc.
+# Alpine's default apk ffmpeg omits patent-encumbered codecs — don't use it.
+FROM mwader/static-ffmpeg:7 AS ffmpeg
+
+# ── Base ──────────────────────────────────────────────────────────────────────
 FROM node:20-alpine AS base
+COPY --from=ffmpeg /ffmpeg /usr/local/bin/ffmpeg
+COPY --from=ffmpeg /ffprobe /usr/local/bin/ffprobe
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # ── Dependencies ──────────────────────────────────────────────────────────────

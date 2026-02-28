@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as path from "path";
 import { db } from "@/lib/db/client";
 import { projects, transformJobs } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { presignDownload, publicUrl } from "@/lib/minio";
+import { getObject, putObject, presignDownload, publicUrl } from "@/lib/minio";
 import {
   buildImgproxyUrl,
   isImage,
@@ -10,7 +11,7 @@ import {
   isAudio,
   ImgproxyOptions,
 } from "@/lib/imgproxy";
-import { getTransformQueue, TransformJobData } from "@/lib/queue";
+import { transcodeBuffer, transcodeStream, streamToBuffer } from "@/lib/ffmpeg";
 import { extractBearerToken, validateApiKey } from "@/lib/apikey";
 
 function parseTransformParams(searchParams: URLSearchParams): ImgproxyOptions {
@@ -30,7 +31,12 @@ function parseTransformParams(searchParams: URLSearchParams): ImgproxyOptions {
   return opts;
 }
 
-const MEDIA_FORMATS = new Set(["mp4", "mov", "webm", "mp3", "wav", "aac", "ogg", "flac"]);
+const MEDIA_FORMATS = new Set([
+  // video
+  "mp4", "mov", "webm", "mkv", "avi",
+  // audio
+  "mp3", "wav", "aac", "ogg", "flac", "m4a",
+]);
 
 export async function GET(
   req: NextRequest,
@@ -52,7 +58,6 @@ export async function GET(
   if (project.visibility === "private") {
     const token = extractBearerToken(req);
     if (!token) {
-      // Check for signed URL token param
       const signedToken = searchParams.get("token");
       if (!signedToken) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -67,23 +72,32 @@ export async function GET(
 
   const format = searchParams.get("format");
   const hasTransform =
-    format || searchParams.get("w") || searchParams.get("h") || searchParams.get("q");
+    format ||
+    searchParams.get("w") ||
+    searchParams.get("h") ||
+    searchParams.get("q") ||
+    searchParams.get("blur") ||
+    searchParams.get("fit");
 
   // ── Image transformation via imgproxy ───────────────────────────────────────
-  if (hasTransform && isImage(filePath)) {
+  // Also handles video thumbnail extraction when ?format=<image> is requested.
+  const formatIsImage = format ? isImage(`_.${format}`) : false;
+  if (hasTransform && (isImage(filePath) || (format && formatIsImage && isVideo(filePath)))) {
     const opts = parseTransformParams(searchParams);
     const source = `s3://${project.bucketName}/${filePath}`;
     const imgproxyUrl = buildImgproxyUrl(source, opts);
     return NextResponse.redirect(imgproxyUrl, 302);
   }
 
-  // ── Video/Audio transformation via FFmpeg worker ────────────────────────────
-  if (format && (isVideo(filePath) || isAudio(filePath)) && MEDIA_FORMATS.has(format)) {
-    const cacheKey = `${filePath}__${format}`;
-    const outputPath = `_cache/${cacheKey}`;
+  // ── Video/Audio transformation via inline FFmpeg ──────────────────────────────
+  const sourceExt = path.extname(filePath).slice(1).toLowerCase();
+  const isSameFormat = sourceExt === format;
+  if (format && !isSameFormat && (isVideo(filePath) || isAudio(filePath)) && MEDIA_FORMATS.has(format)) {
+    // Include projectId in cache key to avoid cross-project collisions
+    const outputKey = `_cache/${project.id}/${filePath}__${format}`;
 
-    // Check if already processed
-    const [existing] = await db
+    // Return cached result if it already exists in MinIO
+    const [cached] = await db
       .select()
       .from(transformJobs)
       .where(
@@ -95,58 +109,63 @@ export async function GET(
       )
       .limit(1);
 
-    if (existing?.outputPath) {
-      const url = await presignDownload(project.bucketName, existing.outputPath, 3600);
+    if (cached?.outputPath) {
+      const url = await presignDownload(project.bucketName, cached.outputPath, 3600);
       return NextResponse.redirect(url, 302);
     }
 
-    // Check if pending/processing
-    const [pending] = await db
-      .select()
-      .from(transformJobs)
-      .where(
-        and(
-          eq(transformJobs.projectId, project.id),
-          eq(transformJobs.sourcePath, filePath),
-          eq(transformJobs.status, "processing")
-        )
-      )
-      .limit(1);
+    const mimeMap: Record<string, string> = {
+      mp4: "video/mp4", webm: "video/webm", mov: "video/quicktime", mkv: "video/x-matroska",
+      avi: "video/x-msvideo", mp3: "audio/mpeg", wav: "audio/wav", aac: "audio/aac",
+      ogg: "audio/ogg", flac: "audio/flac", m4a: "audio/mp4",
+    };
+    const contentType = mimeMap[format] ?? "application/octet-stream";
 
-    if (pending) {
-      return NextResponse.json(
-        { status: "processing", message: "Transformation in progress", jobId: pending.id },
-        { status: 202 }
-      );
-    }
-
-    // Enqueue new job
+    // Record job start
     const [job] = await db
       .insert(transformJobs)
       .values({
         projectId: project.id,
         sourcePath: filePath,
         params: { format },
-        status: "pending",
-        outputPath,
+        status: "processing",
+        outputPath: outputKey,
       })
       .returning();
 
-    const jobData: TransformJobData = {
-      jobId: job.id,
-      projectId: project.id,
-      bucketName: project.bucketName,
-      sourcePath: filePath,
-      outputPath,
-      params: { format },
-    };
+    let inputBuffer: Buffer;
+    try {
+      const sourceStream = await getObject(project.bucketName, filePath);
+      inputBuffer = await streamToBuffer(sourceStream as import("stream").Readable);
+    } catch (err) {
+      await db.update(transformJobs).set({ status: "failed" }).where(eq(transformJobs.id, job.id));
+      console.error("[ffmpeg] failed to fetch source:", err);
+      return NextResponse.json({ error: "Source file not found" }, { status: 404 });
+    }
 
-    await getTransformQueue().add("transform", jobData);
+    const inputExt = path.extname(filePath) || `.${format}`;
 
-    return NextResponse.json(
-      { status: "pending", message: "Transformation queued", jobId: job.id },
-      { status: 202 }
-    );
+    // Stream FFmpeg output directly to the browser as it's produced.
+    // The browser's <audio>/<video> element starts receiving data immediately.
+    const stream = transcodeStream(inputBuffer, inputExt, format);
+
+    // After the stream is consumed, cache the result in MinIO in the background
+    // so subsequent requests get an instant presigned redirect.
+    void (async () => {
+      try {
+        const outputBuffer = await transcodeBuffer(inputBuffer, inputExt, format);
+        await putObject(project.bucketName, outputKey, outputBuffer);
+        await db.update(transformJobs).set({ status: "done" }).where(eq(transformJobs.id, job.id));
+      } catch (err) {
+        await db.update(transformJobs).set({ status: "failed" }).where(eq(transformJobs.id, job.id));
+        console.error("[ffmpeg] background cache failed:", err);
+      }
+    })();
+
+    return new Response(stream, {
+      status: 200,
+      headers: { "Content-Type": contentType },
+    });
   }
 
   // ── Raw file delivery ───────────────────────────────────────────────────────
