@@ -4,18 +4,6 @@ version: "3.9"
 # We connect to them via environment variables — they are NOT managed here.
 
 services:
-  # ─── Redis ──────────────────────────────────────────────────────────────────
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # ─── MinIO ──────────────────────────────────────────────────────────────────
   minio:
     image: minio/minio:latest
@@ -80,8 +68,6 @@ services:
     environment:
       # External shared services (Dokploy provides these)
       DATABASE_URL: ${DATABASE_URL}
-      # Internal services
-      REDIS_URL: redis://redis:6379
       MINIO_ENDPOINT: http://minio:9000
       MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-http://localhost:9000}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
@@ -99,28 +85,9 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-      redis:
-        condition: service_healthy
       minio:
         condition: service_healthy
 
-  # ─── Contento Worker (FFmpeg + BullMQ) ────────────────────────────────────
-  contento-worker:
-    build:
-      context: ./worker
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    environment:
-      REDIS_URL: redis://redis:6379
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-changeme_minio}
-    depends_on:
-      redis:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
 
 volumes:
-  redis_data:
   minio_data:
