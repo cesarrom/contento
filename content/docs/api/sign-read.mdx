@@ -1,0 +1,72 @@
+---
+title: Sign Read URL
+description: Generate a signed URL to read or transform a file.
+---
+
+Returns a URL appropriate for the file type:
+
+- **Image** → signed imgproxy URL with optional transformation params
+- **Video / Audio** → `/f/` delivery URL with `?format=` query param (FFmpeg on demand)
+- **Other** → MinIO presigned GET URL
+
+## Endpoint
+
+```http
+POST /api/v1/projects/:id/sign/read
+Authorization: Bearer <read-key>
+Content-Type: application/json
+
+{
+  "path": "/images/photo.jpg",
+  "expiresIn": 3600,
+  "transform": {
+    "format": "webp",
+    "width": 800,
+    "height": 600,
+    "quality": 85,
+    "fit": "fill",
+    "blur": 0
+  }
+}
+```
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `path` | string | ✅ | — | Object key in the bucket. |
+| `expiresIn` | number | ❌ | `3600` | Seconds until the signed URL expires (for images and raw files). |
+| `transform` | object | ❌ | — | Transformation options. See below. |
+
+### Transform options
+
+| Field | Applies to | Description |
+|---|---|---|
+| `format` | image, video, audio | Output format. Images: `webp`, `avif`, `jpg`, `png`. Video: `mp4`, `webm`, `mkv`. Audio: `mp3`, `aac`, `ogg`, `flac`, `wav`. |
+| `width` | image | Output width in pixels. |
+| `height` | image | Output height in pixels. |
+| `quality` | image | Quality 1–100. |
+| `fit` | image | Resize mode: `fit`, `fill`, `auto`. |
+| `blur` | image | Blur sigma. |
+
+## Response
+
+```json
+{
+  "data": {
+    "url": "https://imgproxy.yourdomain.com/abc123/rs:fill:800:600/q:85/...",
+    "expiresAt": "2025-06-01T13:00:00.000Z"
+  }
+}
+```
+
+For video/audio transforms, the returned URL is your own delivery endpoint:
+
+```json
+{
+  "data": {
+    "url": "https://contento.yourdomain.com/f/my-project/audio/track.wav?format=mp3",
+    "expiresAt": "2025-06-01T13:00:00.000Z"
+  }
+}
+```
+
+Drop this URL directly into an `<audio src="...">` or `<video src="...">` tag.

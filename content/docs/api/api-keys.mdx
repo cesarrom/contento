@@ -1,0 +1,79 @@
+---
+title: API Keys
+description: Create, list, and revoke API keys for a project.
+---
+
+## List API keys
+
+```http
+GET /api/v1/projects/:id/keys
+Authorization: Bearer <admin-key>
+```
+
+**Response**
+
+```json
+{
+  "data": [
+    {
+      "id": "key_abc123",
+      "name": "CI pipeline",
+      "scopes": ["read", "write"],
+      "expiresAt": null,
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+Note: the raw key value is **never returned** after creation.
+
+---
+
+## Create API key
+
+```http
+POST /api/v1/projects/:id/keys
+Authorization: Bearer <admin-key>
+Content-Type: application/json
+
+{
+  "name": "CI pipeline",
+  "scopes": ["read", "write"],
+  "expiresAt": "2026-12-31T00:00:00.000Z"
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | ✅ | Label for this key. |
+| `scopes` | `("read" \| "write" \| "admin")[]` | ✅ | At least one scope required. |
+| `expiresAt` | ISO 8601 string | ❌ | Omit for a non-expiring key. |
+
+**Response** — the raw key is returned **once only**:
+
+```json
+{
+  "data": {
+    "id": "key_abc123",
+    "name": "CI pipeline",
+    "key": "cnt_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "scopes": ["read", "write"],
+    "expiresAt": null
+  }
+}
+```
+
+Store this key securely. It cannot be retrieved again.
+
+---
+
+## Delete (revoke) API key
+
+```http
+DELETE /api/v1/projects/:id/keys/:keyId
+Authorization: Bearer <admin-key>
+```
+
+The key is immediately invalidated. In-flight requests using the key may still succeed
+briefly until the next DB read.

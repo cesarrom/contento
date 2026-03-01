@@ -1,0 +1,62 @@
+---
+title: Migrations
+description: How database migrations work in Contento.
+---
+
+Contento uses **Drizzle ORM** with a migration-first workflow. Migrations are SQL files
+generated from the schema and applied explicitly — never via `db:push`.
+
+## Workflow
+
+### 1. Change the schema
+
+Edit `src/lib/db/schema.ts`.
+
+### 2. Generate the migration
+
+```bash
+pnpm db:generate
+```
+
+This creates a new SQL file in `drizzle/` — e.g. `drizzle/0003_add_transform_cache.sql`.
+Commit this file alongside the schema change.
+
+### 3. Apply the migration
+
+```bash
+pnpm db:migrate
+```
+
+In Docker Compose, the `migrate` service does this automatically before `contento-app` starts:
+
+```yaml
+migrate:
+  build:
+    context: .
+    dockerfile: Dockerfile
+    target: builder
+  command: ["pnpm", "db:migrate"]
+  environment:
+    DATABASE_URL: ${DATABASE_URL}
+  restart: "no"
+```
+
+`contento-app` has `depends_on: migrate: condition: service_completed_successfully`, so
+migrations always run before the app accepts traffic.
+
+## Migration files
+
+Generated files live in `drizzle/`. They are:
+
+- **Committed to version control** — they are the authoritative record of schema history
+- **Never edited manually** — always re-generate if you change the schema
+- **Idempotent via Drizzle's journal** — `drizzle/__drizzle_migrations` tracks what's been applied
+
+## Rolling back
+
+Drizzle does not support automatic rollback. To revert a migration:
+
+1. Write a new migration that undoes the change (`pnpm db:generate` after reverting the schema)
+2. Apply it with `pnpm db:migrate`
+
+Never delete migration files from `drizzle/` — this corrupts the migration history.

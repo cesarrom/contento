@@ -1,0 +1,12 @@
+{
+  "title": "API Reference",
+  "pages": [
+    "authentication",
+    "projects",
+    "api-keys",
+    "files",
+    "sign-upload",
+    "sign-read",
+    "delivery"
+  ]
+}
