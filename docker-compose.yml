@@ -59,7 +59,7 @@ services:
       - internal_net
 
   # ─── DB Migrate (runs once, then exits) ─────────────────────────────────────
-  contento-migrate:
+  contento-migrator:
     build:
       context: .
       dockerfile: Dockerfile
@@ -97,7 +97,7 @@ services:
       AUTHENTIK_CLIENT_SECRET: ${AUTHENTIK_CLIENT_SECRET}
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
     depends_on:
-      contento-migrate:
+      contento-migrator:
         condition: service_completed_successfully
       minio:
         condition: service_healthy
