@@ -1,0 +1,58 @@
+---
+title: Sign Upload URL
+description: Generate a presigned PUT URL so clients upload directly to MinIO.
+---
+
+Clients should never upload files through Contento's Next.js server — that would waste
+bandwidth and memory. Instead, request a presigned URL and have the client PUT the file
+directly to MinIO.
+
+## Endpoint
+
+```http
+POST /api/v1/projects/:id/sign/upload
+Authorization: Bearer <write-key>
+Content-Type: application/json
+
+{
+  "path": "/images/photo.jpg",
+  "contentType": "image/jpeg",
+  "expiresIn": 3600
+}
+```
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `path` | string | ✅ | — | Object key in the bucket. Leading `/` is stripped. |
+| `contentType` | string | ✅ | — | MIME type. Must match the file being uploaded. |
+| `expiresIn` | number | ❌ | `3600` | Seconds until the presigned URL expires. |
+
+## Response
+
+```json
+{
+  "data": {
+    "url": "http://minio:9000/my-app/images/photo.jpg?X-Amz-...",
+    "method": "PUT",
+    "expiresAt": "2025-06-01T13:00:00.000Z"
+  }
+}
+```
+
+## Client upload
+
+```js
+const { data } = await fetch("/api/v1/projects/<id>/sign/upload", {
+  method: "POST",
+  headers: { "Authorization": "Bearer <key>", "Content-Type": "application/json" },
+  body: JSON.stringify({ path: "/images/photo.jpg", contentType: "image/jpeg" }),
+}).then(r => r.json());
+
+await fetch(data.url, {
+  method: "PUT",
+  headers: { "Content-Type": "image/jpeg" },
+  body: file,
+});
+```
+
+The presigned URL points to `MINIO_PUBLIC_ENDPOINT` so it is reachable from the browser.

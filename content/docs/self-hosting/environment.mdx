@@ -1,0 +1,46 @@
+---
+title: Environment Variables
+description: All environment variables required to run Contento.
+---
+
+Copy `.env.example` to `.env` and fill in the values below.
+
+## Required
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string. `postgresql://user:pass@host:5432/contento` |
+| `NEXTAUTH_SECRET` | Random secret for NextAuth session signing. `openssl rand -base64 32` |
+| `AUTHENTIK_ISSUER` | Authentik OIDC issuer URL. e.g. `https://auth.example.com/application/o/contento/` |
+| `AUTHENTIK_CLIENT_ID` | OAuth2 client ID registered in Authentik. |
+| `AUTHENTIK_CLIENT_SECRET` | OAuth2 client secret from Authentik. |
+| `IMGPROXY_KEY` | 64-char hex key for imgproxy HMAC signing. |
+| `IMGPROXY_SALT` | 64-char hex salt for imgproxy HMAC signing. |
+
+Generate imgproxy key/salt:
+
+```bash
+xxd -g 2 -l 64 -p /dev/urandom | tr -d '\n'
+```
+
+Run twice — once for key, once for salt.
+
+## Optional / defaults
+
+| Variable | Default | Description |
+|---|---|---|
+| `NEXTAUTH_URL` | `http://localhost:3000` | Public URL of the Contento app. Set to your domain in production. |
+| `PUBLIC_URL` | `http://localhost:3000` | Used when constructing delivery URLs in the sign/read API. |
+| `MINIO_ENDPOINT` | `http://minio:9000` | Internal MinIO endpoint (used server-side). |
+| `MINIO_PUBLIC_ENDPOINT` | `http://localhost:9000` | Public MinIO endpoint (used in presigned URLs returned to clients). |
+| `MINIO_ROOT_USER` | `minioadmin` | MinIO root username. |
+| `MINIO_ROOT_PASSWORD` | `changeme_minio` | MinIO root password. Change in production. |
+| `IMGPROXY_ENDPOINT` | `http://imgproxy:8080` | Internal imgproxy endpoint. |
+
+## Production checklist
+
+- [ ] `MINIO_ROOT_PASSWORD` is changed from the default
+- [ ] `NEXTAUTH_SECRET` is a fresh random value (not reused from dev)
+- [ ] `NEXTAUTH_URL` and `PUBLIC_URL` are set to your public domain
+- [ ] `MINIO_PUBLIC_ENDPOINT` points to a publicly reachable MinIO URL (or CDN in front of it)
+- [ ] `IMGPROXY_KEY` and `IMGPROXY_SALT` are secret and not committed to version control

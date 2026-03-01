@@ -1,0 +1,50 @@
+---
+title: Overview
+description: What Contento is, how it works, and when to use it.
+---
+
+Contento is a self-hosted, API-first file management platform inspired by Bytescale. It
+orchestrates open-source services — MinIO, imgproxy, and FFmpeg — behind a clean REST API
+and an admin UI built with Next.js.
+
+## What it does
+
+- **Store files** in S3-compatible buckets (MinIO), one bucket per project.
+- **Transform images** on the fly — resize, crop, convert format (WebP, AVIF, JPEG, PNG).
+- **Convert video and audio** on demand — FFmpeg runs inline and caches the result.
+- **Issue signed URLs** — presigned uploads direct from the client, signed reads via imgproxy or MinIO.
+- **Manage access** — projects are public or private; API keys are scoped to read / write / admin.
+
+## Architecture
+
+```
+Browser / App
+    │
+    ▼
+Next.js (this app)
+    ├── /admin         Admin UI (SSO via Authentik)
+    ├── /api/v1        REST API (API key auth)
+    └── /f/:slug       Delivery endpoint
+           ├── images  → redirect to imgproxy
+           └── media   → FFmpeg inline → stream to client
+                                       → cache in MinIO
+MinIO       ← object storage
+imgproxy    ← image transformation
+PostgreSQL  ← metadata (projects, API keys, transform cache)
+```
+
+## When to use Contento
+
+| Use case | Contento fit |
+|---|---|
+| Replace Cloudinary / Bytescale with a self-hosted alternative | ✅ |
+| Store and serve user uploads with per-project isolation | ✅ |
+| On-demand image resizing and format conversion | ✅ |
+| Audio/video format conversion at the edge | ✅ |
+| Full CDN with global PoPs | ❌ (use a CDN in front of Contento) |
+
+## Next steps
+
+- [Quick start](/docs/quick-start) — run Contento locally in 5 minutes.
+- [Concepts](/docs/concepts) — projects, buckets, API keys, and visibility.
+- [API reference](/docs/api/authentication) — all endpoints documented.

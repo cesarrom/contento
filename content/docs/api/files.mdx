@@ -1,0 +1,47 @@
+---
+title: Files
+description: List and delete objects in a project's bucket.
+---
+
+## List files
+
+```http
+GET /api/v1/projects/:id/files?prefix=images/&maxKeys=50
+Authorization: Bearer <read-key>
+```
+
+| Query param | Type | Default | Description |
+|---|---|---|---|
+| `prefix` | string | — | Filter by path prefix. |
+| `maxKeys` | number | 200 | Max results to return. |
+
+**Response**
+
+```json
+{
+  "data": [
+    {
+      "key": "images/photo.jpg",
+      "size": 204800,
+      "lastModified": "2025-06-01T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+## Delete a file
+
+```http
+DELETE /api/v1/projects/:id/files
+Authorization: Bearer <write-key>
+Content-Type: application/json
+
+{
+  "key": "images/photo.jpg"
+}
+```
+
+Deletes the object from MinIO. Does not delete any cached transform results stored under
+`_cache/`. Those are cleaned up separately or expire naturally.

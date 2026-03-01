@@ -1,0 +1,88 @@
+---
+title: Quick Start
+description: Run Contento locally with Docker Compose in under 5 minutes.
+---
+
+## Prerequisites
+
+- Docker + Docker Compose
+- A running PostgreSQL instance (Contento does not manage its own — use Dokploy or any external PG)
+- A running Authentik instance for SSO (or skip auth for local dev by stubbing `NEXTAUTH_SECRET`)
+
+## 1. Clone and configure
+
+```bash
+git clone https://github.com/your-org/contento.git
+cd contento
+cp .env.example .env
+```
+
+Edit `.env` and fill in the required values:
+
+```bash
+# Required
+DATABASE_URL=postgresql://user:pass@host:5432/contento
+NEXTAUTH_SECRET=<random-32-char-string>   # openssl rand -base64 32
+
+# Authentik OIDC (get from your Authentik admin panel)
+AUTHENTIK_ISSUER=https://auth.yourdomain.com/application/o/contento/
+AUTHENTIK_CLIENT_ID=contento
+AUTHENTIK_CLIENT_SECRET=<your-client-secret>
+
+# imgproxy signing (generate with: xxd -g 2 -l 64 -p /dev/urandom | tr -d '\n')
+IMGPROXY_KEY=<64-char-hex>
+IMGPROXY_SALT=<64-char-hex>
+```
+
+## 2. Run migrations
+
+```bash
+pnpm install
+pnpm db:migrate
+```
+
+## 3. Start services
+
+```bash
+docker compose up -d
+```
+
+This starts:
+- **MinIO** on `:9000` (S3 API) and `:9001` (console)
+- **imgproxy** on `:8080`
+- **contento-app** on `:3000`
+
+The `migrate` service runs `pnpm db:migrate` once and exits before the app starts.
+
+## 4. Create your first project
+
+Open `http://localhost:3000/admin` and sign in via Authentik. Then:
+
+1. Click **New project**
+2. Give it a name (slug is auto-generated)
+3. Choose **Public** or **Private** visibility
+4. Save — Contento creates the MinIO bucket automatically
+
+## 5. Upload and deliver a file
+
+```bash
+# 1. Get a presigned upload URL (use your project ID from the admin UI)
+curl -X POST http://localhost:3000/api/v1/projects/<id>/sign/upload \
+  -H "Authorization: Bearer <api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"path": "/images/photo.jpg", "contentType": "image/jpeg"}'
+
+# 2. Upload directly to the returned URL
+curl -X PUT "<presigned-url>" \
+  -H "Content-Type: image/jpeg" \
+  --data-binary @photo.jpg
+
+# 3. Deliver with transformation
+curl "http://localhost:3000/f/<project-slug>/images/photo.jpg?format=webp&w=800"
+```
+
+## Next steps
+
+- [Concepts](/docs/concepts) — understand projects, buckets, and API keys
+- [API: Projects](/docs/api/projects) — full CRUD reference
+- [API: Delivery](/docs/api/delivery) — transformation params for images and media

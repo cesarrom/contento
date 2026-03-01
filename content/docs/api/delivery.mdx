@@ -1,0 +1,98 @@
+---
+title: Delivery
+description: The /f/ route — serve, transform, and stream files on demand.
+---
+
+The delivery endpoint is the single URL you put in `<img>`, `<audio>`, or `<video>` tags.
+It detects the file type and routes to the right transformer automatically.
+
+## URL format
+
+```
+GET /f/:projectSlug/:path?<transform-params>
+```
+
+| Segment | Description |
+|---|---|
+| `:projectSlug` | The project's URL-safe slug (e.g. `my-app`) |
+| `:path` | The object key inside the bucket (e.g. `images/photo.jpg`) |
+
+## Authentication
+
+| Project visibility | Auth required |
+|---|---|
+| `public` | None |
+| `private` | `Authorization: Bearer <read-key>` header, or `?token=<signed-token>` in the URL |
+
+## Image transforms (via imgproxy)
+
+Triggered when the source file is an image (`jpg`, `jpeg`, `png`, `gif`, `webp`, `avif`, `tiff`, `bmp`, `svg`, `ico`).
+
+Also triggered for **video thumbnail extraction** when `?format=<image-format>` is used on a video.
+
+| Param | Type | Description |
+|---|---|---|
+| `format` | string | Output format: `webp`, `avif`, `jpg`, `png`, `gif` |
+| `w` | number | Width in pixels (`0` = auto) |
+| `h` | number | Height in pixels (`0` = auto) |
+| `q` | number | Quality 1–100 |
+| `fit` | `fit` \| `fill` \| `auto` | Resize mode |
+| `blur` | number | Blur sigma |
+
+**Examples:**
+
+```
+# Convert to WebP at 800px wide
+/f/my-app/images/photo.jpg?format=webp&w=800
+
+# Thumbnail with quality and crop
+/f/my-app/images/photo.jpg?format=avif&w=400&h=400&fit=fill&q=80
+
+# Video thumbnail (first frame as JPEG)
+/f/my-app/videos/promo.mp4?format=jpg&w=1280
+```
+
+The response is a `302` redirect to the signed imgproxy URL. imgproxy fetches the source
+directly from MinIO via the S3 protocol.
+
+## Video & Audio transforms (via FFmpeg)
+
+Triggered when the source is a video or audio file **and** `?format=` is an audio/video format
+that differs from the source.
+
+| Source | Valid `?format=` values |
+|---|---|
+| Video (`mp4`, `mov`, `webm`, `mkv`, `avi`) | `mp4`, `mov`, `webm`, `mkv`, `avi`, `mp3`, `aac`, `ogg`, `flac`, `m4a`, `wav` |
+| Audio (`mp3`, `wav`, `aac`, `ogg`, `flac`, `m4a`) | `mp3`, `wav`, `aac`, `ogg`, `flac`, `m4a` |
+
+**Examples:**
+
+```
+# Convert MP4 to WebM
+/f/my-app/videos/promo.mp4?format=webm
+
+# Extract audio track as MP3
+/f/my-app/videos/promo.mp4?format=mp3
+
+# Convert WAV to AAC
+/f/my-app/audio/track.wav?format=aac
+```
+
+### Caching behaviour
+
+1. **First request** — FFmpeg transcodes and streams output to the browser progressively.
+   Simultaneously, the result is saved to MinIO at `_cache/<projectId>/<path>__<format>`.
+2. **Subsequent requests** — Contento finds the cached entry in `transform_jobs` and returns
+   a `302` redirect to the cached MinIO object. No re-transcoding.
+
+### No-op guard
+
+If `?format=` matches the source extension (e.g. `video.mp4?format=mp4`), Contento skips
+FFmpeg and serves the raw file directly.
+
+## Raw delivery (no transform)
+
+When no transform params are provided:
+
+- **Public project** → `302` to the MinIO public URL
+- **Private project** → `302` to a MinIO presigned GET URL (1 hour expiry)

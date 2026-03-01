@@ -1,0 +1,46 @@
+---
+title: Authentication
+description: How to authenticate requests to the Contento REST API.
+---
+
+All REST API endpoints under `/api/v1/` require authentication via an API key.
+
+## API key format
+
+Pass your API key in the `Authorization` header as a Bearer token:
+
+```http
+Authorization: Bearer cnt_<your-key>
+```
+
+Keys are scoped — see [Concepts: API Keys](/docs/concepts#api-keys) for the scope table.
+
+## Creating a key
+
+Keys are created in the admin UI under **Project → API Keys**, or via the API:
+
+```http
+POST /api/v1/projects/:id/keys
+Authorization: Bearer <admin-key>
+Content-Type: application/json
+
+{
+  "name": "My integration",
+  "scopes": ["read", "write"],
+  "expiresAt": "2026-12-31T00:00:00.000Z"
+}
+```
+
+The **raw key is returned once** in the response — store it securely. Contento only stores the hash.
+
+## Error responses
+
+| Status | Meaning |
+|---|---|
+| `401 Unauthorized` | No token provided or token not found |
+| `403 Forbidden` | Token found but insufficient scope |
+
+## Admin UI (session-based)
+
+The admin UI at `/admin` uses NextAuth v5 with Authentik OIDC. Session cookies are handled
+automatically — no Bearer token needed when calling the API from the admin UI context.

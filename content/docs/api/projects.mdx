@@ -1,0 +1,88 @@
+---
+title: Projects
+description: Create, read, update, and delete projects.
+---
+
+## List projects
+
+```http
+GET /api/v1/projects
+Authorization: Bearer <admin-key>
+```
+
+**Response**
+
+```json
+{
+  "data": [
+    {
+      "id": "proj_abc123",
+      "name": "My App",
+      "slug": "my-app",
+      "bucketName": "my-app",
+      "visibility": "private",
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+## Create project
+
+```http
+POST /api/v1/projects
+Authorization: Bearer <admin-key>
+Content-Type: application/json
+
+{
+  "name": "My App",
+  "visibility": "private"
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | ✅ | Human-readable name. Slug is auto-derived. |
+| `visibility` | `"public"` \| `"private"` | ✅ | Controls bucket policy and delivery auth. |
+
+The MinIO bucket is created automatically on project creation.
+
+---
+
+## Get project
+
+```http
+GET /api/v1/projects/:id
+Authorization: Bearer <any-scoped-key>
+```
+
+---
+
+## Update project
+
+```http
+PATCH /api/v1/projects/:id
+Authorization: Bearer <admin-key>
+Content-Type: application/json
+
+{
+  "name": "New Name",
+  "visibility": "public"
+}
+```
+
+Changing `visibility` updates the MinIO bucket policy immediately.
+
+---
+
+## Delete project
+
+```http
+DELETE /api/v1/projects/:id
+Authorization: Bearer <admin-key>
+```
+
+Deletes the project record. **Does not delete the MinIO bucket or its contents** — you must
+clean that up manually via the MinIO console or the files API.

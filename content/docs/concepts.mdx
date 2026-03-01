@@ -1,0 +1,67 @@
+---
+title: Concepts
+description: Projects, buckets, API keys, visibility, and how they fit together.
+---
+
+## Projects
+
+A **project** is the top-level namespace in Contento. Every project has:
+
+- A **name** and a URL-safe **slug** (auto-generated from the name, e.g. `my-app`)
+- A dedicated **MinIO bucket** (created automatically when the project is saved)
+- A **visibility** setting — `public` or `private`
+- Its own set of **API keys**
+
+Projects are isolated from each other. Files in one project's bucket are never accessible via
+another project's delivery URL.
+
+## Buckets
+
+Each project maps 1:1 to a MinIO bucket. The bucket name is derived from the project slug.
+
+- **Public bucket** — MinIO policy allows unauthenticated `GetObject`. The `/f/` delivery
+  endpoint serves files without requiring a token.
+- **Private bucket** — No public policy. The `/f/` endpoint requires either a valid API key
+  in the `Authorization` header or a `?token=` signed URL parameter.
+
+Bucket policies are automatically updated when you change a project's visibility in the admin UI
+or via `PATCH /api/v1/projects/:id`.
+
+## API Keys
+
+API keys authenticate requests to the REST API and the delivery endpoint.
+
+| Scope | Can do |
+|---|---|
+| `read` | List files, generate signed read URLs, access private files via `/f/` |
+| `write` | Everything in `read` + generate signed upload URLs, delete files |
+| `admin` | Everything in `write` + update/delete the project, create/delete API keys |
+
+Keys are shown **once** at creation time. Contento stores only the SHA-256 hash. If you lose a
+key, revoke it and create a new one.
+
+Keys can have an optional **expiry date**. Expired keys are rejected.
+
+## Visibility
+
+| Setting | `/f/` delivery | Who can access |
+|---|---|---|
+| `public` | No auth needed | Anyone with the URL |
+| `private` | API key or signed URL token required | Only authenticated callers |
+
+Visibility affects the MinIO bucket policy and the delivery route auth check. It does not affect
+the REST API — all `/api/v1/` routes always require authentication.
+
+## Transform cache
+
+When a video or audio file is converted via FFmpeg (e.g. `video.mp4?format=mp3`), the result is:
+
+1. Streamed to the caller immediately as FFmpeg produces output
+2. Saved to MinIO at `_cache/<projectId>/<originalPath>__<format>`
+3. Recorded in the `transform_jobs` table with `status: done`
+
+Subsequent requests for the same file + format hit the cache and get an instant MinIO presigned
+redirect — no re-transcoding.
+
+The cache is scoped per project. Two projects with a file at the same path get separate cache
+entries.

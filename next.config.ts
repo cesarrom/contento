@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import { createMDX } from "fumadocs-mdx/next";
+
+const withMDX = createMDX();
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
@@ -6,4 +9,4 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["postgres", "bullmq", "ioredis"],
 };
 
-export default nextConfig;
+export default withMDX(nextConfig);

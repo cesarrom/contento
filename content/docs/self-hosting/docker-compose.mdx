@@ -1,0 +1,65 @@
+---
+title: Docker Compose
+description: Run Contento locally or in production with Docker Compose.
+---
+
+## Services
+
+Contento's `docker-compose.yml` includes:
+
+| Service | Image | Port | Purpose |
+|---|---|---|---|
+| `minio` | `minio/minio` | `9000` / `9001` | S3-compatible object storage |
+| `imgproxy` | `darthsim/imgproxy` | `8080` | On-the-fly image transformation |
+| `migrate` | (app builder stage) | — | Runs `pnpm db:migrate` once, then exits |
+| `contento-app` | (app runner stage) | `3000` | Next.js application |
+
+PostgreSQL and Authentik are **not** managed here — they are expected to be provided externally
+(e.g. already running in Dokploy).
+
+## Quick start
+
+```bash
+cp .env.example .env
+# Fill in DATABASE_URL, NEXTAUTH_SECRET, AUTHENTIK_*, IMGPROXY_KEY, IMGPROXY_SALT
+
+docker compose up -d
+```
+
+The `migrate` service runs before `contento-app` starts, applying any pending migrations.
+
+## FFmpeg
+
+FFmpeg is bundled directly in the `contento-app` image via `mwader/static-ffmpeg:7` —
+a statically-compiled binary with full codec support (H.264, H.265, AAC, MP3, Opus, VP9, AV1, etc.).
+No additional installation is required.
+
+## MinIO console
+
+The MinIO web console is available at `http://localhost:9001`. Default credentials:
+
+```
+Username: minioadmin   (MINIO_ROOT_USER)
+Password: changeme_minio   (MINIO_ROOT_PASSWORD)
+```
+
+Override these with your own values in `.env`.
+
+## Production deployment
+
+For production (e.g. Dokploy):
+
+1. Push the image or let Dokploy build from source.
+2. Set all environment variables via the Dokploy UI or your `.env` file.
+3. Point a reverse proxy (Traefik / Nginx) at port `3000`.
+4. For long video transcoding jobs, set a generous proxy timeout (`proxy_read_timeout 300s`
+   for Nginx, or the equivalent in Traefik).
+
+## Updating
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+The `migrate` service runs on every `up`, applying any new migrations automatically.
