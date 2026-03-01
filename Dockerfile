@@ -2,7 +2,7 @@
 # mwader/static-ffmpeg is compiled with ALL codecs:
 # H.264, H.265, VP8/9, AV1, AAC, MP3, Opus, Vorbis, FLAC, AC3, etc.
 # Alpine's default apk ffmpeg omits patent-encumbered codecs — don't use it.
-FROM mwader/static-ffmpeg:7 AS ffmpeg
+FROM mwader/static-ffmpeg:latest AS ffmpeg
 
 # ── Base ──────────────────────────────────────────────────────────────────────
 FROM node:20-alpine AS base
