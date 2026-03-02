@@ -57,6 +57,7 @@ Contento can be run on macOS, Windows, and Linux.
 
 If you're on Windows, running via Docker Desktop is recommended.
 
+
 ### Windows notes
 
 `./start.sh` is a Bash script.
