@@ -39,7 +39,7 @@ export default async function ProjectKeysPage({
     .orderBy(apiKeys.createdAt);
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 sm:p-8 max-w-3xl">
       <Link
         href={`/admin/projects/${id}`}
         className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-6"
@@ -47,9 +47,12 @@ export default async function ProjectKeysPage({
         <ArrowLeft className="h-4 w-4" /> {project.name}
       </Link>
 
-      <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">API Keys</h1>
-        <Badge variant="secondary">{keys.length}</Badge>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">API Keys</h1>
+          <Badge variant="secondary">{keys.length}</Badge>
+        </div>
+
       </div>
 
       <ApiKeyCreateForm projectId={id} />
