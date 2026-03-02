@@ -17,6 +17,11 @@ Naming convention:
 
 PRs should link to the relevant PRD (or include a new one) when the change is user-facing.
 
+See also:
+
+- `skills/prds.md`
+- `skills/design-guidelines.md`
+
 ## Development
 
 - Package manager: `pnpm`
