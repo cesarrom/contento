@@ -2,6 +2,7 @@ type DevAuthTokenPayload = {
   v: 1;
   sub: string;
   iat: number;
+  exp: number;
 };
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
@@ -74,21 +75,44 @@ export function isAuthentikConfigured(): boolean {
 }
 
 export function getDevAuthSecret(): string {
-  return process.env.DEV_AUTH_SECRET || "dev-auth-secret";
+  const secret = process.env.DEV_AUTH_SECRET || "dev-auth-secret";
+  if (process.env.NODE_ENV === "production") {
+    if (!process.env.DEV_AUTH_SECRET || secret === "dev-auth-secret") {
+      throw new Error("DEV_AUTH_SECRET must be set to a strong random value in production");
+    }
+  }
+  return secret;
 }
 
 export function getDevAuthCredentials(): { username: string; password: string } {
-  return {
-    username: process.env.DEV_AUTH_USERNAME || "admin",
-    password: process.env.DEV_AUTH_PASSWORD || "admin",
-  };
+  const username = process.env.DEV_AUTH_USERNAME || "admin";
+  const password = process.env.DEV_AUTH_PASSWORD || "admin";
+
+  if (process.env.NODE_ENV === "production" && isDevAuthEnabled()) {
+    if (username === "admin" && password === "admin") {
+      throw new Error("DEV_AUTH_USERNAME/DEV_AUTH_PASSWORD must not use default values in production");
+    }
+  }
+
+  return { username, password };
+}
+
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let out = 0;
+  for (let i = 0; i < a.length; i++) {
+    out |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return out === 0;
 }
 
 export async function createDevAuthToken(sub: string): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
   const payload: DevAuthTokenPayload = {
     v: 1,
     sub,
-    iat: Math.floor(Date.now() / 1000),
+    iat: now,
+    exp: now + 60 * 60 * 24 * 7,
   };
 
   const body = base64UrlEncode(toUtf8Bytes(JSON.stringify(payload)));
@@ -101,13 +125,17 @@ export async function verifyDevAuthToken(token: string): Promise<DevAuthTokenPay
   if (!body || !sig) return null;
 
   const expectedSig = base64UrlEncode(await hmacSha256(getDevAuthSecret(), body));
-  if (sig !== expectedSig) return null;
+  if (!constantTimeEqual(sig, expectedSig)) return null;
 
   try {
     const json = new TextDecoder().decode(base64UrlDecodeToBytes(body));
     const payload = JSON.parse(json) as DevAuthTokenPayload;
     if (payload.v !== 1) return null;
     if (!payload.sub) return null;
+
+    const now = Math.floor(Date.now() / 1000);
+    if (!payload.exp || payload.exp < now) return null;
+
     return payload;
   } catch {
     return null;

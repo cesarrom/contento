@@ -36,6 +36,14 @@ Run twice — once for key, once for salt.
 | `MINIO_ROOT_USER` | `minioadmin` | MinIO root username. |
 | `MINIO_ROOT_PASSWORD` | `changeme_minio` | MinIO root password. Change in production. |
 | `IMGPROXY_ENDPOINT` | `http://imgproxy:8080` | Internal imgproxy endpoint. |
+| `IMGPROXY_ALLOW_INSECURE` | `0` | If set to `1`, allows generating `imgproxy/.../insecure/...` URLs when key/salt are missing (development only). |
+
+## Dev auth (fallback)
+
+Contento includes a dev-only admin auth fallback gated by `DEV_AUTH=1`.
+
+- Do not enable `DEV_AUTH` in production.
+- If you do, you must set a strong `DEV_AUTH_SECRET` and non-default credentials.
 
 ## Production checklist
 

@@ -4,6 +4,7 @@ import {
   createDevAuthToken,
   DEV_AUTH_COOKIE,
   getDevAuthCredentials,
+  getDevAuthSecret,
   isDevAuthEnabled,
 } from "@/lib/dev-auth";
 
@@ -11,6 +12,9 @@ export async function POST(request: Request) {
   if (!isDevAuthEnabled()) {
     return NextResponse.json({ error: "dev_auth_disabled" }, { status: 404 });
   }
+
+  // Ensure production deployments cannot accidentally run with insecure defaults.
+  getDevAuthSecret();
 
   const { username, password } = (await request.json().catch(() => ({}))) as {
     username?: string;
