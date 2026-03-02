@@ -64,11 +64,11 @@ export function ApiKeyCreateForm({ projectId }: { projectId: string }) {
       <CardContent>
         {createdKey ? (
           <div className="space-y-3">
-            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-3">
+            <p className="text-sm text-accent-foreground bg-accent/20 border border-border rounded-md p-3">
               Copy this key now — it will not be shown again.
             </p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 font-mono text-xs bg-gray-100 px-3 py-2 rounded truncate">
+              <code className="flex-1 font-mono text-xs bg-muted px-3 py-2 rounded truncate">
                 {createdKey}
               </code>
               <Button size="sm" variant="outline" onClick={copyKey}>
@@ -105,8 +105,8 @@ export function ApiKeyCreateForm({ projectId }: { projectId: string }) {
                     onClick={() => toggleScope(scope)}
                     className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
                       scopes.includes(scope)
-                        ? "border-blue-600 bg-blue-50 text-blue-700"
-                        : "border-gray-200 hover:border-gray-300 text-gray-600"
+                        ? "border-primary/40 bg-primary/10 text-foreground"
+                        : "border-border hover:bg-muted text-muted-foreground"
                     }`}
                   >
                     {scope}

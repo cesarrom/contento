@@ -15,8 +15,8 @@ export default async function AdminDashboard() {
     <div className="p-4 sm:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage your file storage projects</p>
+          <h1 className="text-2xl font-bold text-foreground">Projects</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage your file storage projects</p>
         </div>
         <Link href="/admin/projects/new">
           <Button>
@@ -27,7 +27,7 @@ export default async function AdminDashboard() {
       </div>
 
       {all.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-muted-foreground">
           <FolderOpen className="h-12 w-12 mx-auto mb-3 opacity-30" />
           <p className="font-medium">No projects yet</p>
           <p className="text-sm mt-1">Create your first project to get started</p>
@@ -52,10 +52,10 @@ export default async function AdminDashboard() {
                   <CardDescription className="font-mono text-xs">{project.slug}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-muted-foreground">
                     Bucket: <span className="font-mono">{project.bucketName}</span>
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Created {new Date(project.createdAt!).toLocaleDateString()}
                   </p>
                 </CardContent>

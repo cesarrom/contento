@@ -80,7 +80,7 @@ export function FileBrowser({
         <div className="flex items-center gap-2">
           <Badge variant="secondary">{files.length} files</Badge>
           {!isPublic && (
-            <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">
+            <Badge variant="outline" className="text-xs text-accent-foreground border-border">
               Private — files require auth
             </Badge>
           )}
@@ -92,7 +92,7 @@ export function FileBrowser({
       </div>
 
       {files.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-muted-foreground">
           <FileIcon className="h-10 w-10 mx-auto mb-3 opacity-30" />
           <p className="text-sm">No files in this bucket</p>
         </div>
@@ -112,10 +112,10 @@ export function FileBrowser({
                 <TableCell>
                   <span className="font-mono text-sm">{file.key}</span>
                 </TableCell>
-                <TableCell className="text-sm text-gray-500">
+                <TableCell className="text-sm text-muted-foreground">
                   {formatBytes(file.size)}
                 </TableCell>
-                <TableCell className="text-sm text-gray-500">
+                <TableCell className="text-sm text-muted-foreground">
                   {file.lastModified
                     ? new Date(file.lastModified).toLocaleString()
                     : "—"}

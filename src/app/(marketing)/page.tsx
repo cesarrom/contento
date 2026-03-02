@@ -68,34 +68,34 @@ export default function LandingPage() {
     <>
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-6 pt-24 pb-20 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-500 mb-8">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border text-xs text-muted-foreground mb-8">
           Self-hosted · Open source · API-first
         </div>
-        <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-6 leading-tight">
+        <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-foreground mb-6 leading-tight font-[family-name:var(--font-display)]">
           File management,
           <br />
-          <span className="text-zinc-400">without the SaaS tax.</span>
+          <span className="text-muted-foreground">without the SaaS tax.</span>
         </h1>
-        <p className="text-xl text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
           Contento is a self-hosted file platform inspired by Bytescale. Upload, transform, and
           deliver images, video, and audio — via a clean REST API and admin UI you control.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href="/docs/quick-start"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-medium hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity"
           >
             Get started <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
             href="/docs"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-border text-muted-foreground font-medium hover:bg-muted hover:text-foreground transition-colors"
           >
             Read the docs
           </Link>
           <Link
             href="/admin/login"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-border text-muted-foreground font-medium hover:bg-muted hover:text-foreground transition-colors"
           >
             SSO Login
           </Link>
@@ -108,11 +108,11 @@ export default function LandingPage() {
           {features.map(({ icon: Icon, title, description }) => (
             <div
               key={title}
-              className="p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900"
+              className="p-6 rounded-xl border border-border bg-card"
             >
-              <Icon className="w-5 h-5 text-zinc-500 mb-3" />
-              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">{title}</h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+              <Icon className="w-5 h-5 text-muted-foreground mb-3" />
+              <h3 className="font-semibold text-foreground mb-1">{title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 {description}
               </p>
             </div>
@@ -121,28 +121,28 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section className="border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+      <section className="border-t border-border bg-muted/30">
         <div className="max-w-6xl mx-auto px-6 py-24">
-          <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 mb-3">
+          <h2 className="text-3xl font-bold text-foreground mb-3 font-[family-name:var(--font-display)]">
             How it works
           </h2>
-          <p className="text-zinc-500 dark:text-zinc-400 mb-12 text-lg">
+          <p className="text-muted-foreground mb-12 text-lg">
             Three API calls from upload to transformed delivery.
           </p>
           <div className="grid lg:grid-cols-3 gap-8">
             {steps.map(({ step, title, description, code }) => (
               <div key={step} className="flex flex-col gap-4">
                 <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-bold flex items-center justify-center shrink-0">
+                  <span className="w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center shrink-0">
                     {step}
                   </span>
-                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">{title}</h3>
+                  <h3 className="font-semibold text-foreground">{title}</h3>
                 </div>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   {description}
                 </p>
-                <pre className="text-xs bg-zinc-900 dark:bg-zinc-950 text-zinc-300 rounded-lg p-4 overflow-x-auto leading-relaxed max-w-full">
-                  <code className="wrap-break-word whitespace-pre-wrap">{code}</code>
+                <pre className="text-xs bg-foreground text-background rounded-lg p-4 overflow-x-auto leading-relaxed max-w-full">
+                  <code className="whitespace-pre-wrap break-words">{code}</code>
                 </pre>
               </div>
             ))}
@@ -152,21 +152,21 @@ export default function LandingPage() {
 
       {/* Self-hosting CTA */}
       <section className="max-w-6xl mx-auto px-6 py-24">
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 p-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div className="rounded-2xl border border-border bg-card p-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div>
-            <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mb-2">
+            <h2 className="text-2xl font-bold text-foreground mb-2 font-[family-name:var(--font-display)]">
               One command to run it yourself
             </h2>
-            <p className="text-zinc-500 dark:text-zinc-400">
+            <p className="text-muted-foreground">
               MinIO, imgproxy, and the Next.js app — all wired up with Docker Compose.
             </p>
-            <pre className="mt-4 text-sm bg-zinc-900 text-zinc-300 rounded-lg px-4 py-3 inline-block">
+            <pre className="mt-4 text-sm bg-foreground text-background rounded-lg px-4 py-3 inline-block">
               <code>docker compose up -d</code>
             </pre>
           </div>
           <Link
             href="/docs/self-hosting/docker-compose"
-            className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors"
+            className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-border text-muted-foreground font-medium hover:bg-muted hover:text-foreground transition-colors"
           >
             Self-hosting guide <ArrowRight className="w-4 h-4" />
           </Link>

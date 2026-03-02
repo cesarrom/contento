@@ -65,8 +65,8 @@ export function ProjectSettingsForm({ project }: { project: Project }) {
                   onClick={() => setVisibility(v)}
                   className={`flex items-center gap-2 rounded-lg border px-4 py-3 text-sm transition-colors ${
                     visibility === v
-                      ? "border-blue-600 bg-blue-50 text-blue-700"
-                      : "border-gray-200 hover:border-gray-300"
+                      ? "border-primary/40 bg-primary/10 text-foreground"
+                      : "border-border hover:bg-muted"
                   }`}
                 >
                   {v === "public" ? (

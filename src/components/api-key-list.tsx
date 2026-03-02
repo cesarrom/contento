@@ -52,7 +52,7 @@ export function ApiKeyList({
 
   if (initialKeys.length === 0) {
     return (
-      <p className="text-sm text-gray-400 text-center py-8">
+      <p className="text-sm text-muted-foreground text-center py-8">
         No API keys yet. Create one above.
       </p>
     );
@@ -60,7 +60,7 @@ export function ApiKeyList({
 
   return (
     <div>
-      <h2 className="text-sm font-semibold text-gray-700 mb-3">Existing Keys</h2>
+      <h2 className="text-sm font-semibold text-foreground mb-3">Existing Keys</h2>
       <Table>
         <TableHeader>
           <TableRow>
@@ -77,7 +77,7 @@ export function ApiKeyList({
             <TableRow key={key.id}>
               <TableCell className="font-medium">{key.name}</TableCell>
               <TableCell>
-                <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
                   {key.keyPrefix}…
                 </code>
               </TableCell>
@@ -90,12 +90,12 @@ export function ApiKeyList({
                   ))}
                 </div>
               </TableCell>
-              <TableCell className="text-sm text-gray-500">
+              <TableCell className="text-sm text-muted-foreground">
                 {key.expiresAt
                   ? new Date(key.expiresAt).toLocaleDateString()
                   : "Never"}
               </TableCell>
-              <TableCell className="text-sm text-gray-500">
+              <TableCell className="text-sm text-muted-foreground">
                 {key.createdAt
                   ? new Date(key.createdAt).toLocaleDateString()
                   : "—"}
