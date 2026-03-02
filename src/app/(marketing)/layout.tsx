@@ -15,6 +15,14 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
               Docs
             </Link>
             <Link
+              href="https://github.com/cesarrom/contento"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              GitHub
+            </Link>
+            <Link
               href="/admin/login"
               className="hover:text-foreground transition-colors"
             >
@@ -40,6 +48,14 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
             </Link>
             <Link href="/docs/self-hosting/docker-compose" className="hover:text-foreground transition-colors">
               Self-hosting
+            </Link>
+            <Link
+              href="https://github.com/cesarrom/contento"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              GitHub
             </Link>
           </div>
         </div>
