@@ -58,6 +58,9 @@ export function buildImgproxyUrl(
   const path = `/${processingOptions.join("/")}/${encodedSource}${extension}`;
 
   if (!IMGPROXY_KEY || !IMGPROXY_SALT) {
+    if (process.env.NODE_ENV === "production" && process.env.IMGPROXY_ALLOW_INSECURE !== "1") {
+      throw new Error("IMGPROXY_KEY/IMGPROXY_SALT must be set in production (or set IMGPROXY_ALLOW_INSECURE=1)");
+    }
     return `${IMGPROXY_ENDPOINT}/insecure${path}`;
   }
 
