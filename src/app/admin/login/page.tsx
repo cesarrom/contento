@@ -1,10 +1,49 @@
 "use client";
 
 import { signIn } from "next-auth/react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
+type DevAuthConfig = {
+  devAuthEnabled: boolean;
+  authentikConfigured: boolean;
+};
+
 export default function LoginPage() {
+  const [config, setConfig] = useState<DevAuthConfig | null>(null);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    void fetch("/api/dev-auth/config")
+      .then((r) => r.json())
+      .then((data: DevAuthConfig) => setConfig(data))
+      .catch(() => setConfig({ devAuthEnabled: false, authentikConfigured: false }));
+  }, []);
+
+  async function handleDevLogin() {
+    setLoading(true);
+    setError(null);
+
+    const res = await fetch("/api/dev-auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+
+    setLoading(false);
+
+    if (!res.ok) {
+      setError("Invalid credentials");
+      return;
+    }
+
+    window.location.href = "/admin";
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="w-full max-w-sm">
@@ -13,12 +52,51 @@ export default function LoginPage() {
           <CardDescription>Sign in to access the admin panel</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button
-            className="w-full"
-            onClick={() => signIn("authentik", { callbackUrl: "/admin" })}
-          >
-            Sign in with Authentik
-          </Button>
+          {config?.authentikConfigured ? (
+            <Button className="w-full" onClick={() => signIn("authentik", { callbackUrl: "/admin" })}>
+              Sign in with Authentik
+            </Button>
+          ) : config?.devAuthEnabled ? (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <label className="text-sm text-gray-600" htmlFor="username">
+                  Username
+                </label>
+                <input
+                  id="username"
+                  className="w-full border rounded-md px-3 py-2 text-sm"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="username"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-gray-600" htmlFor="password">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  className="w-full border rounded-md px-3 py-2 text-sm"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+              </div>
+
+              {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+              <Button className="w-full" onClick={handleDevLogin} disabled={loading}>
+                {loading ? "Signing in..." : "Sign in"}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600">
+                Auth is not configured. Set AUTHENTIK_ISSUER, AUTHENTIK_CLIENT_ID, and AUTHENTIK_CLIENT_SECRET.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
