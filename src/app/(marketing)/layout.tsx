@@ -14,6 +14,12 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
               Docs
             </Link>
             <Link
+              href="/admin/login"
+              className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+            >
+              SSO Login
+            </Link>
+            <Link
               href="/admin"
               className="px-3 py-1.5 rounded-md bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-sm font-medium hover:opacity-90 transition-opacity"
             >

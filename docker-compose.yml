@@ -1,12 +1,26 @@
 version: "3.9"
 
-# NOTE: PostgreSQL and authentik are shared services already running in Dokploy.
-# We connect to them via environment variables — they are NOT managed here.
+# NOTE: Authentik is expected to be provided externally.
+# PostgreSQL can be provided externally via DATABASE_URL, or you can use the optional
+# local `postgres` service (enabled via the `local` profile).
 
 services:
-  redis:
-    image: redis:latest
+  # ─── PostgreSQL (optional local DB) ─────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
     restart: unless-stopped
+    profiles: ["local"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-contento}
+      POSTGRES_USER: ${POSTGRES_USER:-contento}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-contento}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - internal_net
 
@@ -61,9 +75,10 @@ services:
       target: builder
     command: ["pnpm", "db:migrate"]
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://contento:contento@postgres:5432/contento}
     restart: "no"
     networks:
+      - internal_net
       - shared_db_net
 
   # ─── Contento App (Next.js — built from repo root) ───────────────────────────
@@ -74,7 +89,7 @@ services:
     restart: unless-stopped
     environment:
       # External shared services (Dokploy provides these)
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://contento:contento@postgres:5432/contento}
       MINIO_ENDPOINT: http://minio:9000
       MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-http://localhost:9000}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
@@ -88,6 +103,10 @@ services:
       AUTHENTIK_ISSUER: ${AUTHENTIK_ISSUER}
       AUTHENTIK_CLIENT_ID: ${AUTHENTIK_CLIENT_ID:-contento}
       AUTHENTIK_CLIENT_SECRET: ${AUTHENTIK_CLIENT_SECRET}
+      DEV_AUTH: ${DEV_AUTH:-0}
+      DEV_AUTH_USERNAME: ${DEV_AUTH_USERNAME:-admin}
+      DEV_AUTH_PASSWORD: ${DEV_AUTH_PASSWORD:-admin}
+      DEV_AUTH_SECRET: ${DEV_AUTH_SECRET:-dev-auth-secret}
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
     depends_on:
       contento-migrator:
@@ -95,14 +114,16 @@ services:
       minio:
         condition: service_healthy
     networks:
-      - shared_db_net
       - internal_net
+      - shared_db_net
 
 
 volumes:
   minio_data:
+  postgres_data:
 networks:
   internal_net:
     driver: bridge
   shared_db_net:
     external: true
+    name: ${CONTENTO_SHARED_DB_NET:-shared_db_net}

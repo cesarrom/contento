@@ -3,6 +3,23 @@ title: Docker Compose
 description: Run Contento locally or in production with Docker Compose.
 ---
 
+## Prerequisites
+
+Contento can be run on macOS, Windows, and Linux.
+
+- **macOS / Windows**: Docker Desktop
+- **Linux**: Docker Engine + Docker Compose plugin
+
+On Windows, running via Docker Desktop is recommended.
+
+### Windows notes
+
+`./start.sh` is a Bash script.
+
+- If you have **Git Bash** installed, you can run it from Git Bash.
+- If you use **WSL2**, you can run it inside your WSL distro.
+- If you prefer not to run scripts on Windows, use the manual commands below.
+
 ## Services
 
 Contento's `docker-compose.yml` includes:
@@ -11,11 +28,16 @@ Contento's `docker-compose.yml` includes:
 |---|---|---|---|
 | `minio` | `minio/minio` | `9000` / `9001` | S3-compatible object storage |
 | `imgproxy` | `darthsim/imgproxy` | `8080` | On-the-fly image transformation |
-| `migrate` | (app builder stage) | — | Runs `pnpm db:migrate` once, then exits |
+| `contento-migrator` | (app builder stage) | — | Runs `pnpm db:migrate` once, then exits |
 | `contento-app` | (app runner stage) | `3000` | Next.js application |
 
-PostgreSQL and Authentik are **not** managed here — they are expected to be provided externally
-(e.g. already running in Dokploy).
+Authentik is expected to be provided externally.
+
+By default, the compose file connects `contento-app` and `contento-migrator` to an external Docker
+network named `shared_db_net` (useful if you already run Postgres elsewhere in Docker).
+
+For local development, you can also start an isolated Postgres container using the `local` compose
+profile.
 
 ## Quick start
 
@@ -26,11 +48,48 @@ cp .env.example .env
 docker compose up -d
 ```
 
+If you want an out-of-the-box experience without thinking about networks / DATABASE_URL, use:
+
+```bash
+./start.sh
+```
+
+This will:
+
+- Create the `shared_db_net` Docker network if it doesn't exist
+- Start a local Postgres container if `DATABASE_URL` is not set
+- Otherwise, use your external Postgres from `DATABASE_URL`
+
+If Authentik is not configured (`AUTHENTIK_*` missing), `./start.sh` enables a local **dev-auth**
+mode and prints default admin credentials to the console.
+
+### Manual startup (no scripts)
+
+External Postgres (set `DATABASE_URL` first):
+
+```bash
+docker network create shared_db_net || true
+docker compose up -d
+```
+
+Isolated local Postgres:
+
+```bash
+docker network create shared_db_net || true
+docker compose --profile local up -d
+```
+
+To run fully isolated (including Postgres):
+
+```bash
+docker compose --profile local up -d
+```
+
 The `migrate` service runs before `contento-app` starts, applying any pending migrations.
 
 ## FFmpeg
 
-FFmpeg is bundled directly in the `contento-app` image via `mwader/static-ffmpeg:7` —
+FFmpeg is bundled directly in the `contento-app` image via `mwader/static-ffmpeg:latest` —
 a statically-compiled binary with full codec support (H.264, H.265, AAC, MP3, Opus, VP9, AV1, etc.).
 No additional installation is required.
 

@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getAdminSession } from "@/lib/admin-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
@@ -10,7 +10,7 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
+  const session = await getAdminSession();
   if (!session) redirect("/admin/login");
 
   return (
@@ -34,7 +34,7 @@ export default async function AdminLayout({
         <Separator />
         <div className="p-4 flex items-center gap-2">
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-gray-500 truncate">{session.user?.email}</p>
+            <p className="text-xs text-gray-500 truncate">{session.email}</p>
           </div>
           <SignOutButton />
         </div>

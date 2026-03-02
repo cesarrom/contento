@@ -2,6 +2,21 @@
 
 Self-hosted, API-first file management platform. Inspired by Bytescale, built on open-source services.
 
+## What is this?
+
+Contento is a self-hosted file platform you can run as:
+
+- A private internal utility (upload/serve/transforms)
+- An on-prem product
+- The backend of a SaaS (with your own auth + billing layer)
+
+It provides:
+
+- A REST API (`/api/v1`) for projects, API keys, files, and signed URLs
+- A delivery endpoint (`/f/...`) that serves raw files and performs transformations
+- A public landing (`/`) and documentation (`/docs`)
+- An admin UI (`/admin`) protected by SSO (Authentik) or a local dev-auth fallback
+
 ## Stack
 
 | Service | Role |
@@ -9,18 +24,46 @@ Self-hosted, API-first file management platform. Inspired by Bytescale, built on
 | **Next.js** (root) | Admin UI + public API gateway |
 | **MinIO** | S3-compatible object storage |
 | **imgproxy** | On-the-fly image transformation |
-| **Redis** | BullMQ job queue |
-| **contento-worker** | FFmpeg video/audio conversion |
+| **FFmpeg** | Video/audio conversion (runs inline in the Next.js backend) |
 | **PostgreSQL** | Metadata DB (external, provided by Dokploy) |
 | **authentik** | SSO/OIDC (external, provided by Dokploy) |
 
+## Docs
+
+- **Public landing**: `/`
+- **Documentation**: `/docs`
+- **Admin UI**: `/admin`
+
 ## Quick Start
+
+## Prerequisites
+
+Contento can be run on macOS, Windows, and Linux.
+
+- **Docker run (recommended)**:
+  - macOS / Windows: Docker Desktop
+  - Linux: Docker Engine + Docker Compose plugin
+
+- **Run from source**:
+  - Node.js 20+
+  - pnpm
+
+If you're on Windows, running via Docker Desktop is recommended.
+
+### Windows notes
+
+`./start.sh` is a Bash script.
+
+- If you have **Git Bash** installed, you can run it from Git Bash.
+- If you use **WSL2**, you can run it inside your WSL distro.
+- If you prefer not to run scripts on Windows, use the manual commands below.
 
 ### 1. Environment
 
 ```bash
 cp .env.example .env
-# Fill in DATABASE_URL, NEXTAUTH_SECRET, AUTHENTIK_*, IMGPROXY_KEY/SALT
+# For a first run, you can leave AUTHENTIK_* unset and use the dev-auth fallback.
+# For production, fill in DATABASE_URL, NEXTAUTH_SECRET, AUTHENTIK_*, IMGPROXY_KEY/SALT.
 ```
 
 Generate imgproxy key/salt:
@@ -43,8 +86,36 @@ pnpm dev
 ### 4. Docker (production)
 
 ```bash
+./start.sh
+```
+
+`./start.sh` will create the `shared_db_net` Docker network if it doesn't exist and will start a local
+Postgres container when `DATABASE_URL` is not set.
+
+If Authentik is not configured (`AUTHENTIK_*` missing), `./start.sh` enables a local **dev-auth** mode
+and prints default credentials to the console.
+
+### Manual startup (no scripts)
+
+External Postgres (set `DATABASE_URL` first):
+
+```bash
+docker network create shared_db_net || true
 docker compose up -d
 ```
+
+Isolated local Postgres:
+
+```bash
+docker network create shared_db_net || true
+docker compose --profile local up -d
+```
+
+After the stack starts:
+
+- Landing: `http://localhost:3000/`
+- Docs: `http://localhost:3000/docs`
+- Admin: `http://localhost:3000/admin`
 
 ## Database Workflow
 
@@ -100,7 +171,7 @@ POST /api/v1/projects/:id/sign/read
 ```
 GET /f/:projectSlug/:path
 GET /f/:projectSlug/:path?format=webp&w=800&h=600   # image transform
-GET /f/:projectSlug/:path?format=mp4                 # video convert (async)
+GET /f/:projectSlug/:path?format=mp3                 # audio/video convert (sync, cached)
 ```
 
 ## Features
@@ -109,7 +180,12 @@ GET /f/:projectSlug/:path?format=mp4                 # video convert (async)
 - **API keys** — scoped (read / write / admin), optional expiry
 - **Visibility** — public (no auth) or private (API key / signed URL)
 - **Image transformation** — via imgproxy: resize, crop, format (webp/avif/jpg/png), quality, blur
-- **Video/Audio conversion** — via FFmpeg worker: async, results cached in MinIO
+- **Video/Audio conversion** — via FFmpeg (inline): on-demand, streamed to the client, cached in MinIO
 - **Signed upload URLs** — presigned MinIO PUT URLs
 - **Signed read URLs** — imgproxy-signed (images) or MinIO presigned GET (others)
 - **SSO** — admin UI protected via authentik OIDC
+
+## Disclaimer
+
+This project is provided **as-is**, without warranty of any kind. See [LICENSE.md](./LICENSE.md) for the
+full warranty and liability disclaimer.

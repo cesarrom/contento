@@ -6,7 +6,7 @@ const withMDX = createMDX();
 const nextConfig: NextConfig = {
   reactCompiler: true,
   output: "standalone",
-  serverExternalPackages: ["postgres", "bullmq", "ioredis"],
+  serverExternalPackages: ["postgres"],
 };
 
 export default withMDX(nextConfig);
