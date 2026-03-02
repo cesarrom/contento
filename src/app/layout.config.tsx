@@ -18,5 +18,9 @@ export const baseOptions: BaseLayoutProps = {
       text: "Admin UI",
       url: "/admin",
     },
+    {
+      text: "GitHub",
+      url: "https://github.com/cesarrom/contento",
+    },
   ],
 };
