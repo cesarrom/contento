@@ -39,7 +39,10 @@ export default function NewProjectPage() {
 
   return (
     <div className="p-4 sm:p-8 max-w-lg">
-      <Link href="/admin" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-6">
+      <Link
+        href="/admin"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
+      >
         <ArrowLeft className="h-4 w-4" /> Back to Projects
       </Link>
       <Card>
@@ -69,8 +72,8 @@ export default function NewProjectPage() {
                     onClick={() => setVisibility(v)}
                     className={`flex items-center gap-2 rounded-lg border px-4 py-3 text-sm transition-colors ${
                       visibility === v
-                        ? "border-blue-600 bg-blue-50 text-blue-700"
-                        : "border-gray-200 hover:border-gray-300"
+                        ? "border-primary/40 bg-primary/10 text-foreground"
+                        : "border-border hover:bg-muted"
                     }`}
                   >
                     {v === "public" ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
@@ -78,7 +81,7 @@ export default function NewProjectPage() {
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 {visibility === "public"
                   ? "Files are publicly accessible without authentication."
                   : "Files require authentication or a signed URL."}

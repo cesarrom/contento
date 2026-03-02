@@ -34,6 +34,13 @@ It provides:
 - **Documentation**: `/docs`
 - **Admin UI**: `/admin`
 
+## PRDs
+
+This repo keeps lightweight Product Requirement Documents (PRDs) in `./prds/` to document
+user-facing changes.
+
+- Design system PRD: `prds/2026-03-02T1425-design-system.prd.md`
+
 ## Quick Start
 
 ## Prerequisites

@@ -1,5 +1,22 @@
 # Contributing
 
+## PRDs
+
+We keep lightweight Product Requirement Documents in `./prds/`.
+
+Use a PRD when proposing or changing:
+
+- User-visible behavior
+- UI/UX (layout, theming, accessibility, responsiveness)
+- Public APIs
+- Deployment/runtime expectations
+
+Naming convention:
+
+- `prds/[datetime]-[short-name].prd.md`
+
+PRs should link to the relevant PRD (or include a new one) when the change is user-facing.
+
 ## Development
 
 - Package manager: `pnpm`

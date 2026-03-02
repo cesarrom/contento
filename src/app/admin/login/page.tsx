@@ -45,10 +45,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Contento</CardTitle>
+          <CardTitle className="text-2xl font-bold font-[family-name:var(--font-display)]">Contento</CardTitle>
           <CardDescription>Sign in to access the admin panel</CardDescription>
         </CardHeader>
         <CardContent>
@@ -59,25 +59,25 @@ export default function LoginPage() {
           ) : config?.devAuthEnabled ? (
             <div className="space-y-3">
               <div className="space-y-2">
-                <label className="text-sm text-gray-600" htmlFor="username">
+                <label className="text-sm text-muted-foreground" htmlFor="username">
                   Username
                 </label>
                 <input
                   id="username"
-                  className="w-full border rounded-md px-3 py-2 text-sm"
+                  className="w-full border border-input bg-background rounded-md px-3 py-2 text-sm"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   autoComplete="username"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm text-gray-600" htmlFor="password">
+                <label className="text-sm text-muted-foreground" htmlFor="password">
                   Password
                 </label>
                 <input
                   id="password"
                   type="password"
-                  className="w-full border rounded-md px-3 py-2 text-sm"
+                  className="w-full border border-input bg-background rounded-md px-3 py-2 text-sm"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
@@ -92,7 +92,7 @@ export default function LoginPage() {
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Auth is not configured. Set AUTHENTIK_ISSUER, AUTHENTIK_CLIENT_ID, and AUTHENTIK_CLIENT_SECRET.
               </p>
             </div>

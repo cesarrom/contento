@@ -32,15 +32,15 @@ export default async function ProjectDetailPage({
     <div className="p-4 sm:p-8 max-w-3xl">
       <Link
         href="/admin"
-        className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-6"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
       >
         <ArrowLeft className="h-4 w-4" /> All Projects
       </Link>
 
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
-          <p className="text-sm font-mono text-gray-400 mt-0.5">{project.slug}</p>
+          <h1 className="text-2xl font-bold text-foreground">{project.name}</h1>
+          <p className="text-sm font-mono text-muted-foreground mt-0.5">{project.slug}</p>
         </div>
         <Badge variant={project.visibility === "public" ? "default" : "secondary"}>
           {project.visibility === "public" ? (
@@ -60,7 +60,7 @@ export default async function ProjectDetailPage({
               <Key className="h-5 w-5 text-blue-600" />
               <div>
                 <p className="font-medium text-sm">API Keys</p>
-                <p className="text-xs text-gray-500">Manage access tokens</p>
+                <p className="text-xs text-muted-foreground">Manage access tokens</p>
               </div>
             </CardContent>
           </Card>
@@ -71,7 +71,7 @@ export default async function ProjectDetailPage({
               <Files className="h-5 w-5 text-green-600" />
               <div>
                 <p className="font-medium text-sm">File Browser</p>
-                <p className="text-xs text-gray-500">Browse stored files</p>
+                <p className="text-xs text-muted-foreground">Browse stored files</p>
               </div>
             </CardContent>
           </Card>
@@ -89,19 +89,19 @@ export default async function ProjectDetailPage({
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-500">Project ID</span>
-            <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">{project.id}</span>
+            <span className="text-muted-foreground">Project ID</span>
+            <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{project.id}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">Bucket</span>
-            <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">{project.bucketName}</span>
+            <span className="text-muted-foreground">Bucket</span>
+            <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{project.bucketName}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">File delivery URL</span>
-            <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded truncate max-w-48">{publicFileUrl}</span>
+            <span className="text-muted-foreground">File delivery URL</span>
+            <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded truncate max-w-48">{publicFileUrl}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">Created</span>
+            <span className="text-muted-foreground">Created</span>
             <span>{new Date(project.createdAt!).toLocaleString()}</span>
           </div>
         </CardContent>
@@ -113,9 +113,9 @@ export default async function ProjectDetailPage({
       <Separator className="my-8" />
 
       {/* Danger zone */}
-      <div className="rounded-lg border border-red-200 p-4">
-        <h3 className="text-sm font-semibold text-red-700 mb-1">Danger Zone</h3>
-        <p className="text-xs text-gray-500 mb-3">
+      <div className="rounded-lg border border-destructive/30 p-4">
+        <h3 className="text-sm font-semibold text-destructive mb-1">Danger Zone</h3>
+        <p className="text-xs text-muted-foreground mb-3">
           Deleting a project removes all API keys from the database but does NOT delete the MinIO bucket or its files.
         </p>
         <DeleteProjectButton projectId={project.id} projectName={project.name} />
