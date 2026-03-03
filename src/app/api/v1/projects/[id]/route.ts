@@ -44,7 +44,12 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { name, visibility } = body as { name?: string; visibility?: "public" | "private" };
+  const { name, visibility, deliveryCacheEnabled, deliveryCacheTtlSeconds } = body as {
+    name?: string;
+    visibility?: "public" | "private";
+    deliveryCacheEnabled?: boolean;
+    deliveryCacheTtlSeconds?: number;
+  };
 
   const [existing] = await db
     .select()
@@ -63,6 +68,14 @@ export async function PATCH(
     } else {
       await setBucketPrivate(existing.bucketName);
     }
+  }
+
+  if (typeof deliveryCacheEnabled === "boolean") {
+    updates.deliveryCacheEnabled = deliveryCacheEnabled;
+  }
+  if (typeof deliveryCacheTtlSeconds === "number") {
+    const ttl = Math.max(0, Math.floor(deliveryCacheTtlSeconds));
+    updates.deliveryCacheTtlSeconds = ttl;
   }
 
   const [updated] = await db

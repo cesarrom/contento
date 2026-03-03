@@ -8,6 +8,13 @@
       "when": 1772294737399,
       "tag": "0000_warm_mercury",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772557584250,
+      "tag": "0001_fat_human_fly",
+      "breakpoints": true
     }
   ]
 }
