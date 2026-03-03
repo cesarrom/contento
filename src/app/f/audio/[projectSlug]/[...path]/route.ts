@@ -67,6 +67,17 @@ export async function GET(
       if (obj.contentLength != null) headers.set("Content-Length", String(obj.contentLength));
       if (obj.contentRange) headers.set("Content-Range", obj.contentRange);
 
+      if (project.deliveryCacheEnabled) {
+        const ttl = Math.max(0, Math.floor(project.deliveryCacheTtlSeconds ?? 0));
+        if (ttl > 0) {
+          const hasAuthHeader = Boolean(req.headers.get("authorization"));
+          headers.set(
+            "Cache-Control",
+            `${hasAuthHeader ? "private" : "public"}, max-age=${ttl}`
+          );
+        }
+      }
+
       return new Response(obj.body as unknown as BodyInit, {
         status: range ? 206 : 200,
         headers,
@@ -107,6 +118,15 @@ export async function GET(
     const inputExt = nodePath.extname(filePath) || `.${format}`;
     const stream = transcodeStream(inputBuffer, inputExt, format);
 
+    const cacheHeaders: Record<string, string> = { "Content-Type": contentType };
+    if (project.deliveryCacheEnabled) {
+      const ttl = Math.max(0, Math.floor(project.deliveryCacheTtlSeconds ?? 0));
+      if (ttl > 0) {
+        const hasAuthHeader = Boolean(req.headers.get("authorization"));
+        cacheHeaders["Cache-Control"] = `${hasAuthHeader ? "private" : "public"}, max-age=${ttl}`;
+      }
+    }
+
     void (async () => {
       try {
         const outputBuffer = await transcodeBuffer(inputBuffer, inputExt, format);
@@ -120,7 +140,7 @@ export async function GET(
 
     return new Response(stream as unknown as BodyInit, {
       status: 200,
-      headers: { "Content-Type": contentType },
+      headers: cacheHeaders,
     });
   }
 

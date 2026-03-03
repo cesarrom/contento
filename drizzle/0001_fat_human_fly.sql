@@ -1,0 +1,2 @@
+ALTER TABLE "projects" ADD COLUMN "delivery_cache_enabled" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+ALTER TABLE "projects" ADD COLUMN "delivery_cache_ttl_seconds" integer DEFAULT 300 NOT NULL;

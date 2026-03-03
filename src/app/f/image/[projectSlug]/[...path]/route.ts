@@ -108,6 +108,17 @@ export async function GET(
     const cc = upstream.headers.get("cache-control");
     if (cc) headers.set("Cache-Control", cc);
 
+    if (!headers.has("Cache-Control") && project.deliveryCacheEnabled) {
+      const ttl = Math.max(0, Math.floor(project.deliveryCacheTtlSeconds ?? 0));
+      if (ttl > 0) {
+        const hasAuthHeader = Boolean(req.headers.get("authorization"));
+        headers.set(
+          "Cache-Control",
+          `${hasAuthHeader ? "private" : "public"}, max-age=${ttl}`
+        );
+      }
+    }
+
     return new Response(upstream.body, {
       status: upstream.status,
       headers,

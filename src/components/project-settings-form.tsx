@@ -16,6 +16,12 @@ export function ProjectSettingsForm({ project }: { project: Project }) {
   const [visibility, setVisibility] = useState<"public" | "private">(
     project.visibility as "public" | "private"
   );
+  const [deliveryCacheEnabled, setDeliveryCacheEnabled] = useState(
+    Boolean(project.deliveryCacheEnabled)
+  );
+  const [deliveryCacheTtlSeconds, setDeliveryCacheTtlSeconds] = useState(
+    String(project.deliveryCacheTtlSeconds ?? 300)
+  );
   const [loading, setLoading] = useState(false);
 
   async function handleSave(e: React.FormEvent) {
@@ -25,7 +31,12 @@ export function ProjectSettingsForm({ project }: { project: Project }) {
       const res = await fetch(`/api/v1/projects/${project.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, visibility }),
+        body: JSON.stringify({
+          name,
+          visibility,
+          deliveryCacheEnabled,
+          deliveryCacheTtlSeconds: Number.parseInt(deliveryCacheTtlSeconds || "0", 10),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed");
@@ -78,6 +89,44 @@ export function ProjectSettingsForm({ project }: { project: Project }) {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Delivery cache</Label>
+            <div className="grid grid-cols-2 gap-3">
+              {([true, false] as const).map((v) => (
+                <button
+                  key={String(v)}
+                  type="button"
+                  onClick={() => setDeliveryCacheEnabled(v)}
+                  className={`flex items-center gap-2 rounded-lg border px-4 py-3 text-sm transition-colors ${
+                    deliveryCacheEnabled === v
+                      ? "border-primary/40 bg-primary/10 text-foreground"
+                      : "border-border hover:bg-muted"
+                  }`}
+                >
+                  <span className="capitalize">{v ? "Enabled" : "Disabled"}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Controls Cache-Control headers for transformed delivery URLs.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="deliveryCacheTtl">Delivery cache TTL (seconds)</Label>
+            <Input
+              id="deliveryCacheTtl"
+              inputMode="numeric"
+              value={deliveryCacheTtlSeconds}
+              onChange={(e) => {
+                const next = e.target.value;
+                if (/^\d*$/.test(next)) setDeliveryCacheTtlSeconds(next);
+              }}
+              placeholder="300"
+              disabled={!deliveryCacheEnabled}
+            />
           </div>
 
           <Button type="submit" disabled={loading}>

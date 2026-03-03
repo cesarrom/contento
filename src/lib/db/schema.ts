@@ -4,6 +4,8 @@ import {
   text,
   timestamp,
   jsonb,
+  boolean,
+  integer,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -13,6 +15,8 @@ export const projects = pgTable("projects", {
   name: text("name").notNull(),
   visibility: text("visibility").notNull().default("private"), // 'public' | 'private'
   bucketName: text("bucket_name").notNull(),
+  deliveryCacheEnabled: boolean("delivery_cache_enabled").notNull().default(true),
+  deliveryCacheTtlSeconds: integer("delivery_cache_ttl_seconds").notNull().default(300),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
