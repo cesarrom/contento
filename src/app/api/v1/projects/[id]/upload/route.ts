@@ -3,7 +3,7 @@ import { db } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { extractBearerToken, validateApiKey } from "@/lib/apikey";
-import { auth } from "@/lib/auth";
+import { getAdminSession } from "@/lib/admin-auth";
 import { verifySignedUrlToken } from "@/lib/signed-url";
 import { putObjectStream } from "@/lib/minio";
 import type { ReadableStream as WebReadableStream } from "stream/web";
@@ -35,7 +35,7 @@ export async function PUT(
   }
 
   // Allow server-side/admin usage via session or API key.
-  const session = await auth();
+  const session = await getAdminSession();
   let authorized = Boolean(session);
 
   if (!authorized) {

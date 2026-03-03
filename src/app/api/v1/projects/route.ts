@@ -3,7 +3,7 @@ import { db } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema";
 import { ensureBucket } from "@/lib/minio";
 import { extractBearerToken, validateApiKey } from "@/lib/apikey";
-import { auth } from "@/lib/auth";
+import { getAdminSession } from "@/lib/admin-auth";
 
 function slugify(name: string): string {
   return name
@@ -14,7 +14,7 @@ function slugify(name: string): string {
 
 async function requireAdmin(req: NextRequest) {
   // Allow session-based admin access
-  const session = await auth();
+  const session = await getAdminSession();
   if (session) return true;
   // Or API key with admin scope
   const token = extractBearerToken(req);

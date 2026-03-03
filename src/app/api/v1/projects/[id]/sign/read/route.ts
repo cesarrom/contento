@@ -8,7 +8,7 @@ import {
   isAudio,
 } from "@/lib/imgproxy";
 import { extractBearerToken, validateApiKey } from "@/lib/apikey";
-import { auth } from "@/lib/auth";
+import { getAdminSession } from "@/lib/admin-auth";
 import { createSignedUrlToken } from "@/lib/signed-url";
 
 export interface TransformRequest {
@@ -26,7 +26,7 @@ export async function POST(
 ) {
   const { id } = await params;
 
-  const session = await auth();
+  const session = await getAdminSession();
   if (!session) {
     const token = extractBearerToken(req);
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

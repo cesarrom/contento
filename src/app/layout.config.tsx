@@ -16,7 +16,7 @@ export const baseOptions: BaseLayoutProps = {
     },
     {
       text: "Admin UI",
-      url: "/admin",
+      url: "/admin/login",
     },
     {
       text: "GitHub",

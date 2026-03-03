@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Trash2, ExternalLink, FileIcon, RefreshCw } from "lucide-react";
+import { Trash2, ExternalLink, FileIcon, RefreshCw, Upload } from "lucide-react";
 
 type FileRow = {
   key: string;
@@ -42,6 +42,9 @@ export function FileBrowser({
   const [files, setFiles] = useState(initialFiles);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadKey, setUploadKey] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
 
   async function handleDelete(key: string) {
     setDeletingKey(key);
@@ -74,6 +77,46 @@ export function FileBrowser({
     }
   }
 
+  async function handleUpload() {
+    if (!uploadFile) return;
+
+    const key = (uploadKey || uploadFile.name).trim().replace(/^\/+/, "");
+    if (!key) return;
+
+    setUploading(true);
+    try {
+      const signRes = await fetch(`/api/v1/projects/${projectId}/sign/upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: `/${key}`,
+          contentType: uploadFile.type || "application/octet-stream",
+        }),
+      });
+      const signJson = await signRes.json();
+      if (!signRes.ok) throw new Error(signJson.error ?? "Failed to sign upload");
+
+      const putUrl = signJson.data.url as string;
+      const putRes = await fetch(putUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": uploadFile.type || "application/octet-stream",
+        },
+        body: uploadFile,
+      });
+      if (!putRes.ok) throw new Error("Upload failed");
+
+      toast.success("File uploaded");
+      setUploadKey("");
+      setUploadFile(null);
+      await handleRefresh();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -88,6 +131,29 @@ export function FileBrowser({
         <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
           <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? "animate-spin" : ""}`} />
           Refresh
+        </Button>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-2 sm:items-center mb-4">
+        <input
+          type="file"
+          className="text-sm"
+          onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+        />
+        <input
+          type="text"
+          className="flex-1 border border-input bg-background rounded-md px-3 py-2 text-sm"
+          placeholder="Key / Path (optional; defaults to filename)"
+          value={uploadKey}
+          onChange={(e) => setUploadKey(e.target.value)}
+        />
+        <Button
+          type="button"
+          onClick={handleUpload}
+          disabled={uploading || !uploadFile}
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          {uploading ? "Uploading…" : "Upload"}
         </Button>
       </div>
 
