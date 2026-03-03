@@ -21,6 +21,7 @@ export async function proxy(request: NextRequest) {
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
     }
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();
