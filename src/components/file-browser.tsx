@@ -61,12 +61,12 @@ export function FileBrowser({
   const [transformKind, setTransformKind] = useState<"image" | "audio" | "video" | "raw">(
     "image"
   );
-  const [transformFormat, setTransformFormat] = useState("");
+  const [transformFormat, setTransformFormat] = useState<"" | "webp" | "avif" | "jpg" | "png">("");
   const [transformWidth, setTransformWidth] = useState("");
   const [transformHeight, setTransformHeight] = useState("");
   const [transformQuality, setTransformQuality] = useState("");
   const [transformBlur, setTransformBlur] = useState("");
-  const [transformFit, setTransformFit] = useState("");
+  const [transformFit, setTransformFit] = useState<"" | "auto" | "cover" | "contain">("");
 
   async function handleOpen(key: string) {
     if (isPublic) {
@@ -107,12 +107,12 @@ export function FileBrowser({
 
     try {
       const transform: Record<string, unknown> = {};
-      if (transformFormat.trim()) transform.format = transformFormat.trim();
+      if (transformFormat) transform.format = transformFormat;
       if (transformWidth.trim()) transform.width = Number(transformWidth);
       if (transformHeight.trim()) transform.height = Number(transformHeight);
       if (transformQuality.trim()) transform.quality = Number(transformQuality);
       if (transformBlur.trim()) transform.blur = Number(transformBlur);
-      if (transformFit.trim()) transform.fit = transformFit.trim();
+      if (transformFit) transform.fit = transformFit;
 
       const signRes = await fetch(`/api/v1/projects/${projectId}/sign/read`, {
         method: "POST",
@@ -257,22 +257,86 @@ export function FileBrowser({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="transform-format">Format</Label>
-                <Input
-                  id="transform-format"
-                  value={transformFormat}
-                  onChange={(e) => setTransformFormat(e.target.value)}
-                  placeholder="webp, jpg, png…"
-                />
+                <Label>Format</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant={transformFormat === "" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTransformFormat("")}
+                  >
+                    Original
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={transformFormat === "webp" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTransformFormat("webp")}
+                  >
+                    WebP
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={transformFormat === "avif" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTransformFormat("avif")}
+                  >
+                    AVIF
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={transformFormat === "jpg" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTransformFormat("jpg")}
+                  >
+                    JPG
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={transformFormat === "png" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTransformFormat("png")}
+                  >
+                    PNG
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="transform-fit">Fit</Label>
-                <Input
-                  id="transform-fit"
-                  value={transformFit}
-                  onChange={(e) => setTransformFit(e.target.value)}
-                  placeholder="cover, contain, fill…"
-                />
+                <Label>Fit</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant={transformFit === "" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTransformFit("")}
+                  >
+                    Default
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={transformFit === "auto" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTransformFit("auto")}
+                  >
+                    Auto
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={transformFit === "cover" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTransformFit("cover")}
+                  >
+                    Cover
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={transformFit === "contain" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTransformFit("contain")}
+                  >
+                    Contain
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="transform-width">Width</Label>
@@ -280,7 +344,10 @@ export function FileBrowser({
                   id="transform-width"
                   inputMode="numeric"
                   value={transformWidth}
-                  onChange={(e) => setTransformWidth(e.target.value)}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    if (/^\d*$/.test(next)) setTransformWidth(next);
+                  }}
                   placeholder="e.g. 800"
                 />
               </div>
@@ -290,7 +357,10 @@ export function FileBrowser({
                   id="transform-height"
                   inputMode="numeric"
                   value={transformHeight}
-                  onChange={(e) => setTransformHeight(e.target.value)}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    if (/^\d*$/.test(next)) setTransformHeight(next);
+                  }}
                   placeholder="e.g. 600"
                 />
               </div>
@@ -300,7 +370,10 @@ export function FileBrowser({
                   id="transform-quality"
                   inputMode="numeric"
                   value={transformQuality}
-                  onChange={(e) => setTransformQuality(e.target.value)}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    if (/^\d*$/.test(next)) setTransformQuality(next);
+                  }}
                   placeholder="1-100"
                 />
               </div>
@@ -310,7 +383,10 @@ export function FileBrowser({
                   id="transform-blur"
                   inputMode="numeric"
                   value={transformBlur}
-                  onChange={(e) => setTransformBlur(e.target.value)}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    if (/^\d*(\.\d*)?$/.test(next)) setTransformBlur(next);
+                  }}
                   placeholder="e.g. 10"
                 />
               </div>
