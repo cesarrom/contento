@@ -18,7 +18,14 @@ function parseTransformParams(searchParams: URLSearchParams): ImgproxyOptions {
   const blur = searchParams.get("blur");
   if (blur) opts.blur = parseFloat(blur);
   const fit = searchParams.get("fit");
-  if (fit) opts.resizingType = fit as ImgproxyOptions["resizingType"];
+  if (fit) {
+    const normalized = fit.toLowerCase();
+    if (normalized === "cover") opts.resizingType = "fill";
+    else if (normalized === "contain") opts.resizingType = "fit";
+    else if (normalized === "fit" || normalized === "fill" || normalized === "auto") {
+      opts.resizingType = normalized as ImgproxyOptions["resizingType"];
+    }
+  }
   return opts;
 }
 
