@@ -103,6 +103,11 @@ Postgres container when `DATABASE_URL` is not set.
 If Authentik is not configured (`AUTHENTIK_*` missing), `./start.sh` enables a local **dev-auth** mode
 and prints default credentials to the console.
 
+Security notes:
+
+- `DEV_AUTH` is intended for local development only.
+- In production, set `IMGPROXY_KEY` and `IMGPROXY_SALT` (insecure imgproxy URLs are blocked by default).
+
 ### Manual startup (no scripts)
 
 External Postgres (set `DATABASE_URL` first):
