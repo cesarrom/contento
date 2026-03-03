@@ -33,7 +33,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-changeme_minio}
     volumes:
-      - minio_data:/data
+      - minio_data_fin:/data
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
       interval: 10s
@@ -156,7 +156,7 @@ services:
 
 
 volumes:
-  minio_data:
+  minio_data_fin:
   postgres_data:
 networks:
   internal_net:

@@ -76,6 +76,23 @@ export async function GET(
       );
     }
 
+    if (!upstream.ok) {
+      let bodyText: string | null = null;
+      try {
+        bodyText = await upstream.text();
+      } catch {
+        // ignore
+      }
+      return Response.json(
+        {
+          error: "Imgproxy request failed",
+          status: upstream.status,
+          body: bodyText ? bodyText.slice(0, 500) : null,
+        },
+        { status: upstream.status }
+      );
+    }
+
     const headers = new Headers();
     const ct = upstream.headers.get("content-type");
     if (ct) headers.set("Content-Type", ct);
