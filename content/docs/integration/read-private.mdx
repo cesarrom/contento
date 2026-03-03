@@ -1,0 +1,141 @@
+---
+title: Read Private Files
+description: Deliver files from private projects — sign/read then use the returned URL.
+---
+
+For **private** projects, delivery URLs require authentication. You have two options:
+
+1. **Signed URL** (recommended for browser/client use) — a time-limited URL with `?token=...` embedded.
+2. **Bearer token** (for server-to-server) — pass `Authorization: Bearer <read-key>` directly to the `/f/` endpoint.
+
+## Option 1: Signed URL (client-side safe)
+
+### Step 1 — Request a signed read URL
+
+```http
+POST /api/v1/projects/:id/sign/read
+Authorization: Bearer cnt_<read-key>
+Content-Type: application/json
+
+{
+  "path": "images/photo.jpg",
+  "expiresIn": 3600
+}
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `path` | ✅ | Object key in the bucket. |
+| `expiresIn` | ❌ | Seconds until the token expires. Default: `3600`. |
+| `kind` | ❌ | Force delivery kind: `raw`, `image`, `audio`, `video`. Auto-detected from extension if omitted. |
+| `transform` | ❌ | Transform options to bake into the signed URL. See [Transforms](/docs/integration/transforms). |
+
+**Response:**
+
+```json
+{
+  "data": {
+    "url": "https://contento.yourdomain.com/f/image/my-app/images/photo.jpg?format=webp&w=800&token=...",
+    "expiresAt": "2026-06-01T13:00:00.000Z"
+  }
+}
+```
+
+### Step 2 — Use the returned URL
+
+Drop the URL directly into your app. The `?token=...` parameter is self-contained — no auth header needed.
+
+```html
+<img src="<data.url>" />
+```
+
+```ts
+// Or fetch it from your app
+const res = await fetch(signedUrl);
+const blob = await res.blob();
+```
+
+## Option 2: Bearer token (server-to-server)
+
+Pass a `read`-scoped API key directly to the delivery endpoint:
+
+```http
+GET /f/raw/my-app/documents/report.pdf
+Authorization: Bearer cnt_<read-key>
+```
+
+This works for server-side rendering or backend-to-backend transfers, but **do not expose API keys in client-side code**.
+
+## Full example (TypeScript)
+
+```ts
+async function getPrivateFileUrl(
+  projectId: string,
+  apiKey: string,
+  path: string,
+  transform?: { format?: string; width?: number; height?: number }
+): Promise<string> {
+  const res = await fetch(
+    `https://contento.yourdomain.com/api/v1/projects/${projectId}/sign/read`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        path,
+        expiresIn: 3600,
+        ...(transform ? { transform } : {}),
+      }),
+    }
+  );
+
+  if (!res.ok) throw new Error(`sign/read failed: ${res.status}`);
+  const { data } = await res.json();
+  return data.url;
+}
+
+// Usage
+const url = await getPrivateFileUrl(
+  "proj-id",
+  "cnt_...",
+  "images/photo.jpg",
+  { format: "webp", width: 800 }
+);
+// → "https://contento.yourdomain.com/f/image/my-app/images/photo.jpg?format=webp&w=800&token=..."
+```
+
+## Full example (curl)
+
+```bash
+# Request signed URL
+SIGNED=$(curl -s -X POST https://contento.yourdomain.com/api/v1/projects/<id>/sign/read \
+  -H "Authorization: Bearer cnt_<read-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"path":"images/photo.jpg","expiresIn":3600}')
+
+URL=$(echo $SIGNED | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['url'])")
+
+# Fetch file using signed URL (no auth header needed)
+curl -o photo.jpg "$URL"
+```
+
+## Kind auto-detection
+
+When you call `sign/read` without a `kind` field, Contento picks the delivery kind from the file extension:
+
+| Extension | Delivery kind |
+|---|---|
+| `jpg`, `jpeg`, `png`, `gif`, `webp`, `avif`, `svg`, `tiff`, `bmp`, `ico` | `image` |
+| `mp3`, `wav`, `aac`, `ogg`, `flac`, `m4a` | `audio` |
+| `mp4`, `mov`, `webm`, `mkv`, `avi` | `video` |
+| everything else | `raw` |
+
+Force a specific kind by passing `"kind": "raw"` (e.g. to download the original video file without triggering FFmpeg).
+
+## Signed URL security
+
+- The token is an HMAC-SHA256 signature over `method + kind + path + query + expiry`.
+- It binds to the exact path and query params — changing either invalidates the token.
+- Tokens are not revocable before expiry. Keep `expiresIn` short for sensitive content.

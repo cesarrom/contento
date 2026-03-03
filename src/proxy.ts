@@ -2,9 +2,23 @@ import { auth } from "@/lib/auth";
 import { DEV_AUTH_COOKIE, isDevAuthEnabled, verifyDevAuthToken } from "@/lib/dev-auth";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { isMarkdownPreferred, rewritePath } from "fumadocs-core/negotiation";
+
+const { rewrite: rewriteLLM } = rewritePath(
+  "/docs{/*path}",
+  "/llms.mdx/docs{/*path}"
+);
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Serve raw Markdown for AI agents that send Accept: text/markdown
+  if (pathname.startsWith("/docs") && isMarkdownPreferred(request)) {
+    const result = rewriteLLM(pathname);
+    if (result) {
+      return NextResponse.rewrite(new URL(result, request.nextUrl));
+    }
+  }
 
   if (pathname.startsWith("/admin")) {
     const session = await auth();

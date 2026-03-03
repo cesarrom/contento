@@ -1,0 +1,143 @@
+---
+title: Upload Files
+description: How to upload files to Contento — sign/upload then PUT to the backend proxy.
+---
+
+Uploading always goes through the Contento backend. MinIO is never exposed.
+
+## Step 1 — Request a signed upload URL
+
+```http
+POST /api/v1/projects/:id/sign/upload
+Authorization: Bearer cnt_<write-key>
+Content-Type: application/json
+
+{
+  "path": "images/photo.jpg",
+  "contentType": "image/jpeg",
+  "expiresIn": 3600
+}
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `path` | ✅ | Object key inside the bucket. Leading `/` is stripped automatically. |
+| `contentType` | ✅ | MIME type of the file. Must match what you send in the `PUT`. |
+| `expiresIn` | ❌ | Seconds until the signed URL expires. Default: `3600`. |
+
+**Response:**
+
+```json
+{
+  "data": {
+    "url": "https://contento.yourdomain.com/api/v1/projects/<id>/upload?path=images%2Fphoto.jpg&token=...",
+    "method": "PUT",
+    "expiresAt": "2026-06-01T13:00:00.000Z"
+  }
+}
+```
+
+## Step 2 — PUT the file to the signed URL
+
+Send the file bytes directly to `data.url`. You **must** include:
+
+- `Content-Type` matching what you provided in step 1
+- `Content-Length` (required for streaming to work correctly)
+
+```http
+PUT <data.url>
+Content-Type: image/jpeg
+Content-Length: 204800
+
+<binary file data>
+```
+
+Contento streams the body to MinIO and returns `200 OK` on success.
+
+## Full example (TypeScript / fetch)
+
+```ts
+async function uploadFile(
+  projectId: string,
+  apiKey: string,
+  path: string,
+  file: File
+): Promise<void> {
+  // Step 1: get signed upload URL
+  const signRes = await fetch(
+    `https://contento.yourdomain.com/api/v1/projects/${projectId}/sign/upload`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        path,
+        contentType: file.type,
+        expiresIn: 3600,
+      }),
+    }
+  );
+
+  if (!signRes.ok) throw new Error(`sign/upload failed: ${signRes.status}`);
+  const { data } = await signRes.json();
+
+  // Step 2: upload the file
+  const uploadRes = await fetch(data.url, {
+    method: "PUT",
+    headers: {
+      "Content-Type": file.type,
+      "Content-Length": String(file.size),
+    },
+    body: file,
+  });
+
+  if (!uploadRes.ok) throw new Error(`upload failed: ${uploadRes.status}`);
+}
+```
+
+## Full example (curl)
+
+```bash
+# Step 1: sign
+SIGNED=$(curl -s -X POST https://contento.yourdomain.com/api/v1/projects/<id>/sign/upload \
+  -H "Authorization: Bearer cnt_<write-key>" \
+  -H "Content-Type: application/json" \
+  -d '{"path":"images/photo.jpg","contentType":"image/jpeg"}')
+
+URL=$(echo $SIGNED | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['url'])")
+
+# Step 2: upload
+curl -X PUT "$URL" \
+  -H "Content-Type: image/jpeg" \
+  --data-binary @photo.jpg
+```
+
+## Server-side upload (Node.js streams)
+
+When uploading from a server-side request (e.g., proxying a user upload), pass the stream and its content length:
+
+```ts
+import { createReadStream, statSync } from "fs";
+
+const filePath = "./photo.jpg";
+const { size } = statSync(filePath);
+
+await fetch(signedUrl, {
+  method: "PUT",
+  headers: {
+    "Content-Type": "image/jpeg",
+    "Content-Length": String(size),
+  },
+  // @ts-expect-error Node fetch accepts ReadableStream
+  body: createReadStream(filePath),
+  duplex: "half",
+});
+```
+
+## Notes
+
+- **Path uniqueness**: uploading to the same path replaces the existing file.
+- **Signed URL expiry**: the `?token=` in the URL is time-limited. Create it close to when you'll use it.
+- **Content-Type mismatch**: the upload will be rejected with `400` if the `Content-Type` header doesn't match the value you signed with.

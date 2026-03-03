@@ -1,0 +1,70 @@
+---
+title: Integration Overview
+description: How to integrate Contento into your application — auth model, key concepts, and the two core flows.
+---
+
+Contento is designed to be embedded into your app. Your app never talks to MinIO or imgproxy directly — all uploads and reads go through the Contento backend.
+
+## Two core flows
+
+### 1. Upload flow
+
+```
+Your app server  →  POST /api/v1/projects/:id/sign/upload  →  Contento
+                 ←  { url, method }                         ←
+Your app / browser  →  PUT <signed-url>  →  Contento  →  MinIO (internal)
+```
+
+1. Your server requests a signed upload URL from Contento (requires a `write` API key).
+2. The signed URL points to Contento's own upload proxy (`/api/v1/projects/:id/upload?...`).
+3. The client `PUT`s the file to that URL. Contento streams it to MinIO internally.
+
+MinIO is **never exposed publicly**.
+
+### 2. Read / delivery flow
+
+```
+Browser  →  GET /f/<kind>/<project-slug>/<path>?<params>  →  Contento
+```
+
+- For **public projects**: no auth needed. Use the URL directly in `<img>`, `<audio>`, `<video>`.
+- For **private projects**: request a signed read URL from Contento first, then use that URL.
+
+Contento proxies MinIO (raw) or runs imgproxy/FFmpeg (transforms) internally, then streams the result to the client.
+
+## Authentication
+
+All `/api/v1/` endpoints require an `Authorization: Bearer <key>` header.
+
+```
+cnt_<random-string>
+```
+
+Keys have scopes:
+
+| Scope   | Allowed operations |
+|---|---|
+| `read`  | List files, generate signed read URLs, access private files |
+| `write` | Everything in `read` + generate signed upload URLs, delete files |
+| `admin` | Everything in `write` + manage projects and API keys |
+
+Create keys in the Admin UI or via `POST /api/v1/projects/:id/keys`.
+
+## Key concepts
+
+- **Project**: top-level namespace. Has a slug (`my-app`), visibility (`public`/`private`), and its own API keys.
+- **Bucket**: each project has a dedicated MinIO bucket. Never accessed directly from outside Contento.
+- **Signed URL**: a time-limited token baked into the URL (`?token=...`). Contento verifies it on delivery without a separate auth header.
+- **Delivery kind**: choose the right `/f/<kind>/` prefix for your file type:
+  - `/f/raw/` — any file, no transform
+  - `/f/image/` — images with optional imgproxy transforms
+  - `/f/audio/` — audio with optional FFmpeg transcode
+  - `/f/video/` — video with optional FFmpeg transcode
+
+## Next steps
+
+- [Upload files](/docs/integration/upload) — full upload flow with examples
+- [Read public files](/docs/integration/read-public) — direct delivery URLs
+- [Read private files](/docs/integration/read-private) — signed read URL flow
+- [Transforms](/docs/integration/transforms) — all transform params by kind
+- [Errors](/docs/integration/errors) — status codes and how to handle them

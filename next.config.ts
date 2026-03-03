@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   output: "standalone",
   serverExternalPackages: ["postgres"],
+  async rewrites() {
+    return [
+      {
+        source: "/docs/:path*.mdx",
+        destination: "/llms.mdx/docs/:path*",
+      },
+    ];
+  },
 };
 
 export default withMDX(nextConfig);

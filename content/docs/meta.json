@@ -1,4 +1,4 @@
 {
   "title": "Contento",
-  "pages": ["index", "quick-start", "concepts", "api", "self-hosting"]
+  "pages": ["index", "quick-start", "concepts", "integration", "api", "self-hosting"]
 }

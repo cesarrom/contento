@@ -1,0 +1,156 @@
+---
+title: Errors
+description: HTTP status codes returned by Contento — what they mean and how to fix them.
+---
+
+All error responses from Contento follow this JSON shape:
+
+```json
+{
+  "error": "Human-readable message"
+}
+```
+
+---
+
+## REST API errors (`/api/v1/`)
+
+### `400 Bad Request`
+
+Missing or invalid request body field.
+
+```json
+{ "error": "name is required" }
+```
+
+**Fix**: check required fields in the request body. See the relevant endpoint docs.
+
+---
+
+### `401 Unauthorized`
+
+No API key provided, key not found, or key has expired.
+
+```json
+{ "error": "Unauthorized" }
+```
+
+**Fix**: ensure `Authorization: Bearer cnt_<key>` is present and the key exists and hasn't expired.
+
+---
+
+### `403 Forbidden`
+
+API key found but its scopes don't cover the operation.
+
+```json
+{ "error": "Forbidden" }
+```
+
+**Fix**: use a key with the required scope (`read`, `write`, or `admin`).
+
+| Operation | Minimum scope |
+|---|---|
+| List files, sign/read | `read` |
+| Upload, delete files, sign/upload | `write` |
+| Manage projects or API keys | `admin` |
+
+---
+
+### `404 Not Found`
+
+Project, file, or key not found.
+
+```json
+{ "error": "Not found" }
+```
+
+**Fix**: verify the project ID or file key. IDs are UUIDs (`xxxxxxxx-xxxx-...`), not slugs.
+
+---
+
+## Delivery errors (`/f/`)
+
+### `401 Unauthorized`
+
+Private project and no valid auth provided (no `Authorization` header and no `?token=`).
+
+**Fix**: add `Authorization: Bearer <read-key>` or use a signed URL from `sign/read`.
+
+---
+
+### `403 Forbidden`
+
+`?token=` present but invalid, expired, or bound to a different path/query.
+
+**Fix**: re-request a fresh signed URL via `sign/read`. Tokens are bound to the exact URL path and query params — any modification invalidates them.
+
+---
+
+### `404 Not Found`
+
+The file doesn't exist in the bucket.
+
+**Fix**: verify the path. Use `GET /api/v1/projects/:id/files` to list objects.
+
+---
+
+### `410 Gone`
+
+The legacy `/f/:projectSlug/:path` route is no longer supported.
+
+```json
+{ "error": "Use /f/raw/, /f/image/, /f/audio/, or /f/video/ instead" }
+```
+
+**Fix**: migrate to `/f/<kind>/` routes.
+
+---
+
+### `502 Bad Gateway`
+
+imgproxy was unreachable or returned an unexpected error.
+
+```json
+{
+  "error": "imgproxy upstream error",
+  "status": 403,
+  "body": "..."
+}
+```
+
+**Common causes and fixes:**
+
+| Cause | Fix |
+|---|---|
+| `IMGPROXY_KEY` / `IMGPROXY_SALT` mismatch between `contento-app` and `imgproxy` containers | Ensure both containers have identical hex-encoded values. Generate with: `xxd -g 2 -l 64 -p /dev/urandom \| tr -d '\n'` |
+| imgproxy container not running | Check `docker compose ps` and logs: `docker compose logs imgproxy` |
+| `IMGPROXY_ENDPOINT` not set or pointing to wrong internal URL | Should be `http://imgproxy:8080` (inside Docker network) |
+
+---
+
+## Upload errors
+
+### `400 Bad Request` on upload proxy
+
+```json
+{ "error": "Content-Type mismatch" }
+```
+
+**Fix**: the `Content-Type` header in your `PUT` must match the value you provided to `sign/upload`.
+
+---
+
+### `401` / `403` on upload proxy
+
+The `?token=` in the signed upload URL is invalid or expired.
+
+**Fix**: re-request a fresh signed URL via `sign/upload` and retry.
+
+---
+
+## Debugging tips
+
+- For imgproxy issues, set `IMGPROXY_ALLOW_INSECURE=1` in dev to bypass signing and confirm the transform works.
+- For signed URL failures, check the `expiresAt` field in the `sign/read` or `sign/upload` response.
+- Contento logs upstream errors with prefix `[imgproxy]` and `[ffmpeg]` — check container logs.
