@@ -21,10 +21,6 @@ export async function proxy(request: NextRequest) {
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
     }
-    
-    if (pathname.includes("/login")) {
-      return NextResponse.next();
-    }
 
     return NextResponse.redirect(new URL("/login", request.url));
   }
