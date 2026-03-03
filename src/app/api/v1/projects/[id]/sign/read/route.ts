@@ -46,10 +46,12 @@ export async function POST(
   const {
     path,
     expiresIn = 3600,
+    kind: requestedKind,
     transform,
   } = body as {
     path: string;
     expiresIn?: number;
+    kind?: "raw" | "image" | "audio" | "video";
     transform?: TransformRequest;
   };
 
@@ -59,13 +61,15 @@ export async function POST(
   const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
   const publicBase = process.env.PUBLIC_URL ?? "http://localhost:3000";
 
-  const kind = isImage(fileKey)
-    ? "image"
-    : isVideo(fileKey)
-      ? "video"
-      : isAudio(fileKey)
-        ? "audio"
-        : "raw";
+  const kind = requestedKind
+    ? requestedKind
+    : isImage(fileKey)
+      ? "image"
+      : isVideo(fileKey)
+        ? "video"
+        : isAudio(fileKey)
+          ? "audio"
+          : "raw";
 
   const allowedQuery: Record<string, string> = {};
   if (transform?.format) allowedQuery.format = transform.format;

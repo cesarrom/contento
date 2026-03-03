@@ -11,8 +11,18 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Trash2, ExternalLink, FileIcon, RefreshCw, Upload } from "lucide-react";
+import { Trash2, ExternalLink, FileIcon, RefreshCw, Upload, SlidersHorizontal } from "lucide-react";
 
 type FileRow = {
   key: string;
@@ -46,6 +56,18 @@ export function FileBrowser({
   const [uploadKey, setUploadKey] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
 
+  const [transformOpen, setTransformOpen] = useState(false);
+  const [transformKey, setTransformKey] = useState<string | null>(null);
+  const [transformKind, setTransformKind] = useState<"image" | "audio" | "video" | "raw">(
+    "image"
+  );
+  const [transformFormat, setTransformFormat] = useState("");
+  const [transformWidth, setTransformWidth] = useState("");
+  const [transformHeight, setTransformHeight] = useState("");
+  const [transformQuality, setTransformQuality] = useState("");
+  const [transformBlur, setTransformBlur] = useState("");
+  const [transformFit, setTransformFit] = useState("");
+
   async function handleOpen(key: string) {
     if (isPublic) {
       window.open(`${publicBaseUrl}/${key}`, "_blank", "noopener,noreferrer");
@@ -56,13 +78,57 @@ export function FileBrowser({
       const signRes = await fetch(`/api/v1/projects/${projectId}/sign/read`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: `/${key}` }),
+        body: JSON.stringify({ path: `/${key}`, kind: "raw" }),
       });
       const signJson = await signRes.json();
       if (!signRes.ok) throw new Error(signJson.error ?? "Failed to sign read URL");
 
       const signedUrl = signJson.data.url as string;
       window.open(signedUrl, "_blank", "noopener,noreferrer");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to open file");
+    }
+  }
+
+  async function handleOpenTransformDialog(key: string) {
+    setTransformKey(key);
+    setTransformKind("image");
+    setTransformFormat("");
+    setTransformWidth("");
+    setTransformHeight("");
+    setTransformQuality("");
+    setTransformBlur("");
+    setTransformFit("");
+    setTransformOpen(true);
+  }
+
+  async function handleOpenTransformed() {
+    if (!transformKey) return;
+
+    try {
+      const transform: Record<string, unknown> = {};
+      if (transformFormat.trim()) transform.format = transformFormat.trim();
+      if (transformWidth.trim()) transform.width = Number(transformWidth);
+      if (transformHeight.trim()) transform.height = Number(transformHeight);
+      if (transformQuality.trim()) transform.quality = Number(transformQuality);
+      if (transformBlur.trim()) transform.blur = Number(transformBlur);
+      if (transformFit.trim()) transform.fit = transformFit.trim();
+
+      const signRes = await fetch(`/api/v1/projects/${projectId}/sign/read`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: `/${transformKey}`,
+          kind: transformKind,
+          transform: Object.keys(transform).length ? transform : undefined,
+        }),
+      });
+      const signJson = await signRes.json();
+      if (!signRes.ok) throw new Error(signJson.error ?? "Failed to sign read URL");
+
+      const signedUrl = signJson.data.url as string;
+      window.open(signedUrl, "_blank", "noopener,noreferrer");
+      setTransformOpen(false);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to open file");
     }
@@ -141,6 +207,125 @@ export function FileBrowser({
 
   return (
     <div>
+      <Dialog open={transformOpen} onOpenChange={setTransformOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Transform & Open</DialogTitle>
+            <DialogDescription>
+              Generate a signed URL with optional transformation parameters and open it in a new tab.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Kind</Label>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant={transformKind === "raw" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTransformKind("raw")}
+                >
+                  Raw
+                </Button>
+                <Button
+                  type="button"
+                  variant={transformKind === "image" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTransformKind("image")}
+                >
+                  Image
+                </Button>
+                <Button
+                  type="button"
+                  variant={transformKind === "audio" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTransformKind("audio")}
+                >
+                  Audio
+                </Button>
+                <Button
+                  type="button"
+                  variant={transformKind === "video" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTransformKind("video")}
+                >
+                  Video
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="transform-format">Format</Label>
+                <Input
+                  id="transform-format"
+                  value={transformFormat}
+                  onChange={(e) => setTransformFormat(e.target.value)}
+                  placeholder="webp, jpg, png…"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="transform-fit">Fit</Label>
+                <Input
+                  id="transform-fit"
+                  value={transformFit}
+                  onChange={(e) => setTransformFit(e.target.value)}
+                  placeholder="cover, contain, fill…"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="transform-width">Width</Label>
+                <Input
+                  id="transform-width"
+                  inputMode="numeric"
+                  value={transformWidth}
+                  onChange={(e) => setTransformWidth(e.target.value)}
+                  placeholder="e.g. 800"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="transform-height">Height</Label>
+                <Input
+                  id="transform-height"
+                  inputMode="numeric"
+                  value={transformHeight}
+                  onChange={(e) => setTransformHeight(e.target.value)}
+                  placeholder="e.g. 600"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="transform-quality">Quality</Label>
+                <Input
+                  id="transform-quality"
+                  inputMode="numeric"
+                  value={transformQuality}
+                  onChange={(e) => setTransformQuality(e.target.value)}
+                  placeholder="1-100"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="transform-blur">Blur</Label>
+                <Input
+                  id="transform-blur"
+                  inputMode="numeric"
+                  value={transformBlur}
+                  onChange={(e) => setTransformBlur(e.target.value)}
+                  placeholder="e.g. 10"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTransformOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => void handleOpenTransformed()}>Open</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Badge variant="secondary">{files.length} files</Badge>
@@ -217,6 +402,14 @@ export function FileBrowser({
                       onClick={() => void handleOpen(file.key)}
                     >
                       <ExternalLink className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Transform & open"
+                      onClick={() => void handleOpenTransformDialog(file.key)}
+                    >
+                      <SlidersHorizontal className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
