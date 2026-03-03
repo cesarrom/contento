@@ -88,28 +88,62 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      # External shared services (Dokploy provides these)
+      # ─── External shared services (already in Dokploy — get values from there) ───
+      # PostgreSQL connection string provided by Dokploy
+      # If you are using an external Postgres (recommended for production), set DATABASE_URL.
+      # Example:
+      # DATABASE_URL=postgresql://contento:changeme@your-postgres-host:5432/contento?sslmode=require
+      #
+      # For local development with the optional `postgres` service in docker-compose (profile: local),
+      # you can leave DATABASE_URL unset and run `./start.sh`.
       DATABASE_URL: ${DATABASE_URL:-postgresql://contento:contento@postgres:5432/contento}
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-http://localhost:9000}
+
+      # Optional local Postgres (used only when running: docker compose --profile local up -d)
+      POSTGRES_DB: contento
+      POSTGRES_USER: contento
+      POSTGRES_PASSWORD: contento
+
+      # ─── MinIO (managed by this compose stack) ────────────────────────────────────
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-changeme_minio}
-      IMGPROXY_ENDPOINT: http://imgproxy:8080
+      # Internal endpoint (used by contento-app + imgproxy containers)
+      MINIO_ENDPOINT: http://minio:9000
+      # Optional legacy endpoint (used in presigned URLs returned to clients).
+      # Not required when using backend-proxied delivery/uploads.
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-http://localhost:9000}
+
+      # ─── imgproxy (managed by this compose stack) ─────────────────────────────────
+      # Generate key+salt with: xxd -g 2 -l 64 -p /dev/urandom | tr -d '\n'
       IMGPROXY_KEY: ${IMGPROXY_KEY}
       IMGPROXY_SALT: ${IMGPROXY_SALT}
-      # Auth (authentik OIDC — external)
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-      CONTENTO_SIGNED_URL_SECRET: ${CONTENTO_SIGNED_URL_SECRET:-}
+      IMGPROXY_ALLOW_INSECURE: 0
+
+      # ─── authentik OIDC (external — already in Dokploy) ───────────────────────────
+      # Create an OAuth2/OIDC provider in authentik, then fill these:
       AUTHENTIK_ISSUER: ${AUTHENTIK_ISSUER}
       AUTHENTIK_CLIENT_ID: ${AUTHENTIK_CLIENT_ID:-contento}
       AUTHENTIK_CLIENT_SECRET: ${AUTHENTIK_CLIENT_SECRET}
+
+      # ─── Dev Auth (fallback) ─────────────────────────────────────────────────────
+      # If Authentik isn't configured, `./start.sh` enables a simple local username/password admin login.
+      # You can override the defaults here.
       DEV_AUTH: ${DEV_AUTH:-0}
       DEV_AUTH_USERNAME: ${DEV_AUTH_USERNAME:-admin}
       DEV_AUTH_PASSWORD: ${DEV_AUTH_PASSWORD:-admin}
       DEV_AUTH_SECRET: ${DEV_AUTH_SECRET:-dev-auth-secret}
-      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+
+      # ─── Next.js / NextAuth ───────────────────────────────────────────────────────
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      # Generate with: openssl rand -base64 32
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      # If deploying behind a reverse proxy / platform (Dokploy, Traefik, etc), Auth.js may
+      # require explicitly trusting the forwarded host to avoid UntrustedHost errors.
       AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-1}
+      # Signed URL tokens
+      # Used to sign backend `?token=...` URLs. If unset, Contento defaults to NEXTAUTH_SECRET.
+      CONTENTO_SIGNED_URL_SECRET: ${CONTENTO_SIGNED_URL_SECRET:-}
+      # Public base URL for file delivery links (no trailing slash)
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
     depends_on:
       contento-migrator:
         condition: service_completed_successfully
