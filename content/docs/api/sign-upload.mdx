@@ -1,11 +1,10 @@
 ---
 title: Sign Upload URL
-description: Generate a presigned PUT URL so clients upload directly to MinIO.
+description: Generate a signed backend PUT URL so clients upload through Contento.
 ---
 
-Clients should never upload files through Contento's Next.js server — that would waste
-bandwidth and memory. Instead, request a presigned URL and have the client PUT the file
-directly to MinIO.
+Request a signed URL from Contento and upload to that URL. Contento will proxy the upload
+to internal MinIO.
 
 ## Endpoint
 
@@ -32,7 +31,7 @@ Content-Type: application/json
 ```json
 {
   "data": {
-    "url": "http://minio:9000/my-app/images/photo.jpg?X-Amz-...",
+    "url": "https://contento.yourdomain.com/api/v1/projects/<id>/upload?path=images/photo.jpg&token=...",
     "method": "PUT",
     "expiresAt": "2025-06-01T13:00:00.000Z"
   }
@@ -54,5 +53,3 @@ await fetch(data.url, {
   body: file,
 });
 ```
-
-The presigned URL points to `MINIO_PUBLIC_ENDPOINT` so it is reachable from the browser.

@@ -5,9 +5,11 @@ description: Generate a signed URL to read or transform a file.
 
 Returns a URL appropriate for the file type:
 
-- **Image** → signed imgproxy URL with optional transformation params
-- **Video / Audio** → `/f/` delivery URL with `?format=` query param (FFmpeg on demand)
-- **Other** → MinIO presigned GET URL
+- **Image** → `/f/image/...` URL (backend proxies to imgproxy internally)
+- **Video / Audio** → `/f/video/...` or `/f/audio/...` URL (FFmpeg on demand)
+- **Other** → `/f/raw/...` URL
+
+For private projects, the returned URL contains a `?token=...` query parameter.
 
 ## Endpoint
 
@@ -52,7 +54,7 @@ Content-Type: application/json
 ```json
 {
   "data": {
-    "url": "https://imgproxy.yourdomain.com/abc123/rs:fill:800:600/q:85/...",
+    "url": "https://contento.yourdomain.com/f/image/my-project/images/photo.jpg?format=webp&w=800&token=...",
     "expiresAt": "2025-06-01T13:00:00.000Z"
   }
 }
@@ -63,7 +65,7 @@ For video/audio transforms, the returned URL is your own delivery endpoint:
 ```json
 {
   "data": {
-    "url": "https://contento.yourdomain.com/f/my-project/audio/track.wav?format=mp3",
+    "url": "https://contento.yourdomain.com/f/audio/my-project/audio/track.wav?format=mp3&token=...",
     "expiresAt": "2025-06-01T13:00:00.000Z"
   }
 }

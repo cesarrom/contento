@@ -13,7 +13,7 @@ Contento is a self-hosted file platform you can run as:
 It provides:
 
 - A REST API (`/api/v1`) for projects, API keys, files, and signed URLs
-- A delivery endpoint (`/f/...`) that serves raw files and performs transformations
+- Delivery endpoints (`/f/raw|image|audio|video/...`) that serve raw files and perform transformations through the backend
 - A public landing (`/`) and documentation (`/docs`)
 - An admin UI (`/admin`) protected by SSO (Authentik) or a local dev-auth fallback
 
@@ -71,7 +71,7 @@ If you're on Windows, running via Docker Desktop is recommended.
 ```bash
 cp .env.example .env
 # For a first run, you can leave AUTHENTIK_* unset and use the dev-auth fallback.
-# For production, fill in DATABASE_URL, NEXTAUTH_SECRET, AUTHENTIK_*, IMGPROXY_KEY/SALT.
+# For production, fill in DATABASE_URL, NEXTAUTH_SECRET (or CONTENTO_SIGNED_URL_SECRET), AUTHENTIK_*, IMGPROXY_KEY/SALT.
 ```
 
 Generate imgproxy key/salt:

@@ -4,13 +4,20 @@ description: The /f/ route — serve, transform, and stream files on demand.
 ---
 
 The delivery endpoint is the single URL you put in `<img>`, `<audio>`, or `<video>` tags.
-It detects the file type and routes to the right transformer automatically.
+It proxies files through Contento’s backend and routes to the right transformer.
 
 ## URL format
 
 ```
-GET /f/:projectSlug/:path?<transform-params>
+GET /f/<kind>/:projectSlug/:path?<transform-params>
 ```
+
+Where `<kind>` is one of:
+
+- `raw`
+- `image`
+- `audio`
+- `video`
 
 | Segment | Description |
 |---|---|
@@ -43,17 +50,16 @@ Also triggered for **video thumbnail extraction** when `?format=<image-format>` 
 
 ```
 # Convert to WebP at 800px wide
-/f/my-app/images/photo.jpg?format=webp&w=800
+/f/image/my-app/images/photo.jpg?format=webp&w=800
 
 # Thumbnail with quality and crop
-/f/my-app/images/photo.jpg?format=avif&w=400&h=400&fit=fill&q=80
+/f/image/my-app/images/photo.jpg?format=avif&w=400&h=400&fit=fill&q=80
 
 # Video thumbnail (first frame as JPEG)
-/f/my-app/videos/promo.mp4?format=jpg&w=1280
+/f/image/my-app/videos/promo.mp4?format=jpg&w=1280
 ```
 
-The response is a `302` redirect to the signed imgproxy URL. imgproxy fetches the source
-directly from MinIO via the S3 protocol.
+Contento calls imgproxy internally and streams the response back to the client.
 
 ## Video & Audio transforms (via FFmpeg)
 
@@ -69,21 +75,21 @@ that differs from the source.
 
 ```
 # Convert MP4 to WebM
-/f/my-app/videos/promo.mp4?format=webm
+/f/video/my-app/videos/promo.mp4?format=webm
 
 # Extract audio track as MP3
-/f/my-app/videos/promo.mp4?format=mp3
+/f/video/my-app/videos/promo.mp4?format=mp3
 
 # Convert WAV to AAC
-/f/my-app/audio/track.wav?format=aac
+/f/audio/my-app/audio/track.wav?format=aac
 ```
 
 ### Caching behaviour
 
 1. **First request** — FFmpeg transcodes and streams output to the browser progressively.
    Simultaneously, the result is saved to MinIO at `_cache/<projectId>/<path>__<format>`.
-2. **Subsequent requests** — Contento finds the cached entry in `transform_jobs` and returns
-   a `302` redirect to the cached MinIO object. No re-transcoding.
+2. **Subsequent requests** — Contento finds the cached entry in `transform_jobs` and serves
+   the cached MinIO object through the backend. No re-transcoding.
 
 ### No-op guard
 
@@ -94,5 +100,4 @@ FFmpeg and serves the raw file directly.
 
 When no transform params are provided:
 
-- **Public project** → `302` to the MinIO public URL
-- **Private project** → `302` to a MinIO presigned GET URL (1 hour expiry)
+- Contento streams the object from MinIO through the backend.

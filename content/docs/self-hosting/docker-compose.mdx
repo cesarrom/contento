@@ -31,6 +31,9 @@ Contento's `docker-compose.yml` includes:
 | `contento-migrator` | (app builder stage) | — | Runs `pnpm db:migrate` once, then exits |
 | `contento-app` | (app runner stage) | `3000` | Next.js application |
 
+In production, MinIO and imgproxy should be treated as internal-only services. Only `contento-app`
+needs to be reachable from the Internet.
+
 Authentik is expected to be provided externally.
 
 By default, the compose file connects `contento-app` and `contento-migrator` to an external Docker

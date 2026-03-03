@@ -32,11 +32,12 @@ Run twice — once for key, once for salt.
 | `NEXTAUTH_URL` | `http://localhost:3000` | Public URL of the Contento app. Set to your domain in production. |
 | `PUBLIC_URL` | `http://localhost:3000` | Used when constructing delivery URLs in the sign/read API. |
 | `MINIO_ENDPOINT` | `http://minio:9000` | Internal MinIO endpoint (used server-side). |
-| `MINIO_PUBLIC_ENDPOINT` | `http://localhost:9000` | Public MinIO endpoint (used in presigned URLs returned to clients). |
+| `MINIO_PUBLIC_ENDPOINT` | `http://localhost:9000` | Optional legacy setting for presigned URLs. Not required when using backend-proxied delivery/uploads. |
 | `MINIO_ROOT_USER` | `minioadmin` | MinIO root username. |
 | `MINIO_ROOT_PASSWORD` | `changeme_minio` | MinIO root password. Change in production. |
 | `IMGPROXY_ENDPOINT` | `http://imgproxy:8080` | Internal imgproxy endpoint. |
 | `IMGPROXY_ALLOW_INSECURE` | `0` | If set to `1`, allows generating `imgproxy/.../insecure/...` URLs when key/salt are missing (development only). |
+| `CONTENTO_SIGNED_URL_SECRET` | (unset) | Secret used to sign backend `?token=...` URLs. Defaults to `NEXTAUTH_SECRET` if unset. |
 
 ## Dev auth (fallback)
 
@@ -49,6 +50,6 @@ Contento includes a dev-only admin auth fallback gated by `DEV_AUTH=1`.
 
 - [ ] `MINIO_ROOT_PASSWORD` is changed from the default
 - [ ] `NEXTAUTH_SECRET` is a fresh random value (not reused from dev)
+- [ ] `CONTENTO_SIGNED_URL_SECRET` is set (or you intentionally rely on `NEXTAUTH_SECRET`)
 - [ ] `NEXTAUTH_URL` and `PUBLIC_URL` are set to your public domain
-- [ ] `MINIO_PUBLIC_ENDPOINT` points to a publicly reachable MinIO URL (or CDN in front of it)
 - [ ] `IMGPROXY_KEY` and `IMGPROXY_SALT` are secret and not committed to version control

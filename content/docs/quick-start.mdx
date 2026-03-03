@@ -12,7 +12,7 @@ description: Run Contento locally with Docker Compose in under 5 minutes.
 ## 1. Clone and configure
 
 ```bash
-git clone https://github.com/your-org/contento.git
+git clone https://github.com/cesarrom/contento.git
 cd contento
 cp .env.example .env
 ```
@@ -48,8 +48,8 @@ docker compose up -d
 ```
 
 This starts:
-- **MinIO** on `:9000` (S3 API) and `:9001` (console)
-- **imgproxy** on `:8080`
+- **MinIO** (internal)
+- **imgproxy** (internal)
 - **contento-app** on `:3000`
 
 The `migrate` service runs `pnpm db:migrate` once and exits before the app starts.
@@ -66,19 +66,19 @@ Open `http://localhost:3000/admin` and sign in via Authentik. Then:
 ## 5. Upload and deliver a file
 
 ```bash
-# 1. Get a presigned upload URL (use your project ID from the admin UI)
+# 1. Get a signed upload URL (use your project ID from the admin UI)
 curl -X POST http://localhost:3000/api/v1/projects/<id>/sign/upload \
   -H "Authorization: Bearer <api-key>" \
   -H "Content-Type: application/json" \
   -d '{"path": "/images/photo.jpg", "contentType": "image/jpeg"}'
 
-# 2. Upload directly to the returned URL
-curl -X PUT "<presigned-url>" \
+# 2. Upload to the returned backend URL
+curl -X PUT "<signed-backend-url>" \
   -H "Content-Type: image/jpeg" \
   --data-binary @photo.jpg
 
 # 3. Deliver with transformation
-curl "http://localhost:3000/f/<project-slug>/images/photo.jpg?format=webp&w=800"
+curl "http://localhost:3000/f/image/<project-slug>/images/photo.jpg?format=webp&w=800"
 ```
 
 ## Next steps
