@@ -142,7 +142,8 @@ export async function putObjectStream(
   bucketName: string,
   key: string,
   body: WebReadableStream<Uint8Array> | NodeJS.ReadableStream,
-  contentType?: string
+  contentType?: string,
+  contentLength?: number
 ): Promise<void> {
   const nodeBody: Readable =
     typeof (body as WebReadableStream<Uint8Array>).getReader === "function"
@@ -155,6 +156,7 @@ export async function putObjectStream(
       Key: key,
       Body: nodeBody,
       ContentType: contentType,
+      ContentLength: contentLength,
     })
   );
 }
