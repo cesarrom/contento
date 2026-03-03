@@ -46,6 +46,28 @@ export function FileBrowser({
   const [uploadKey, setUploadKey] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
 
+  async function handleOpen(key: string) {
+    if (isPublic) {
+      window.open(`${publicBaseUrl}/${key}`, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    try {
+      const signRes = await fetch(`/api/v1/projects/${projectId}/sign/read`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: `/${key}` }),
+      });
+      const signJson = await signRes.json();
+      if (!signRes.ok) throw new Error(signJson.error ?? "Failed to sign read URL");
+
+      const signedUrl = signJson.data.url as string;
+      window.open(signedUrl, "_blank", "noopener,noreferrer");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to open file");
+    }
+  }
+
   async function handleDelete(key: string) {
     setDeletingKey(key);
     try {
@@ -188,15 +210,14 @@ export function FileBrowser({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
-                    <a
-                      href={`${publicBaseUrl}/${file.key}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title={isPublic ? "Open file URL" : "Open signed URL"}
+                      onClick={() => void handleOpen(file.key)}
                     >
-                      <Button variant="ghost" size="icon" title="Open file URL">
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                    </a>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
