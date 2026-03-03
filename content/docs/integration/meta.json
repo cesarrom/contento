@@ -1,0 +1,4 @@
+{
+  "title": "Integration",
+  "pages": ["index", "upload", "read-public", "read-private", "transforms", "errors"]
+}

@@ -1,0 +1,91 @@
+---
+title: Read Public Files
+description: Deliver files from public projects — direct URLs, no auth needed.
+---
+
+For **public** projects, delivery URLs work without any authentication. Use them directly in HTML or as API responses.
+
+## URL format
+
+```
+GET /f/<kind>/<project-slug>/<path>
+```
+
+Where `<kind>` is:
+
+| Kind | Use for |
+|---|---|
+| `raw` | Any file — serve as-is (streams directly from MinIO) |
+| `image` | Images — optionally resize/convert via imgproxy |
+| `audio` | Audio — optionally transcode via FFmpeg |
+| `video` | Video — optionally transcode via FFmpeg |
+
+## Examples
+
+```html
+<!-- Raw file -->
+<img src="https://contento.yourdomain.com/f/raw/my-app/images/photo.jpg" />
+
+<!-- Image with transform: WebP at 800px wide -->
+<img src="https://contento.yourdomain.com/f/image/my-app/images/photo.jpg?format=webp&w=800" />
+
+<!-- Audio player -->
+<audio src="https://contento.yourdomain.com/f/audio/my-app/audio/track.mp3" controls />
+
+<!-- Video player -->
+<video src="https://contento.yourdomain.com/f/video/my-app/videos/clip.mp4" controls />
+```
+
+## Transform params
+
+Append query params to apply transforms. See [Transforms](/docs/integration/transforms) for the full reference.
+
+```
+# Thumbnail: AVIF, 400×400, fill crop
+/f/image/my-app/hero.jpg?format=avif&w=400&h=400&fit=fill&q=80
+
+# Convert video to WebM
+/f/video/my-app/video.mp4?format=webm
+
+# Convert audio to AAC
+/f/audio/my-app/track.wav?format=aac
+```
+
+## No-transform raw delivery
+
+If you just want the original file bytes without any processing:
+
+```
+/f/raw/my-app/documents/report.pdf
+```
+
+This supports `Range` requests, so it works natively with browser media players and PDF viewers.
+
+## Cache-Control headers
+
+Contento emits `Cache-Control: public, max-age=<ttl>` headers for transformed responses when the project has delivery caching enabled (default: `max-age=300`).
+
+You can configure per-project TTL in the Admin UI under **Project Settings → Delivery cache**, or via the API:
+
+```http
+PATCH /api/v1/projects/:id
+Authorization: Bearer cnt_<admin-key>
+Content-Type: application/json
+
+{
+  "deliveryCacheEnabled": true,
+  "deliveryCacheTtlSeconds": 600
+}
+```
+
+## Checking project visibility
+
+To confirm a project is public before constructing public URLs:
+
+```ts
+const res = await fetch(`/api/v1/projects/${projectId}`, {
+  headers: { Authorization: `Bearer ${apiKey}` },
+});
+const { data } = await res.json();
+// data.visibility === "public" | "private"
+```

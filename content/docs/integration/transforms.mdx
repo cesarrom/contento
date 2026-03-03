@@ -1,0 +1,182 @@
+---
+title: Transforms
+description: Image resize/convert via imgproxy, audio/video transcode via FFmpeg — all params documented.
+---
+
+Contento supports on-demand transforms for images, audio, and video. Transforms are driven by query parameters on the delivery URL or baked into a signed read URL via `sign/read`.
+
+## Image transforms (`/f/image/`)
+
+Processed internally by **imgproxy**. No re-encode happens if no params are provided.
+
+```
+GET /f/image/<project-slug>/<path>?<params>
+```
+
+| Param | Type | Description |
+|---|---|---|
+| `format` | string | Output format: `webp`, `avif`, `jpg`, `png`, `gif` |
+| `w` | integer | Output width in pixels. `0` = proportional to height. |
+| `h` | integer | Output height in pixels. `0` = proportional to width. |
+| `q` | integer | Quality 1–100. Default: imgproxy default (~80). |
+| `fit` | string | Resize mode: `cover` (fill + crop), `contain` (fit without crop), `fill`, `fit`, `auto` |
+| `blur` | float | Gaussian blur sigma. `0` = no blur. |
+
+### Examples
+
+```
+# WebP at 800px wide, auto height
+/f/image/my-app/photo.jpg?format=webp&w=800
+
+# AVIF thumbnail, 400×400, fill-crop, quality 80
+/f/image/my-app/photo.jpg?format=avif&w=400&h=400&fit=cover&q=80
+
+# Blurred placeholder (sigma=20)
+/f/image/my-app/photo.jpg?format=jpg&w=40&blur=20
+
+# Just convert format, keep original size
+/f/image/my-app/photo.png?format=webp
+```
+
+### Via `sign/read` (private files)
+
+Pass a `transform` object when calling `sign/read`:
+
+```json
+{
+  "path": "images/photo.jpg",
+  "kind": "image",
+  "expiresIn": 3600,
+  "transform": {
+    "format": "webp",
+    "width": 800,
+    "height": 600,
+    "quality": 85,
+    "fit": "cover",
+    "blur": 0
+  }
+}
+```
+
+Note: `sign/read` uses `width`/`height` (not `w`/`h`) in the request body. The returned URL uses `w`/`h`.
+
+### Video thumbnail
+
+imgproxy can extract a still frame from a video. Use `/f/image/` with a video source and an image `format`:
+
+```
+/f/image/my-app/videos/clip.mp4?format=jpg&w=1280
+```
+
+---
+
+## Audio transforms (`/f/audio/`)
+
+Processed by **FFmpeg**. The result is streamed immediately and cached in MinIO for subsequent requests.
+
+```
+GET /f/audio/<project-slug>/<path>?format=<target-format>
+```
+
+| Param | Type | Description |
+|---|---|---|
+| `format` | string | Target audio format |
+
+**Supported source → output formats:**
+
+| Source formats | Valid `format=` values |
+|---|---|
+| `mp3`, `wav`, `aac`, `ogg`, `flac`, `m4a` | `mp3`, `wav`, `aac`, `ogg`, `flac`, `m4a` |
+
+If `format` matches the source extension, no transcoding happens (raw file served directly).
+
+### Examples
+
+```
+# Convert WAV to MP3
+/f/audio/my-app/track.wav?format=mp3
+
+# Convert FLAC to AAC
+/f/audio/my-app/track.flac?format=aac
+```
+
+### Via `sign/read`
+
+```json
+{
+  "path": "audio/track.wav",
+  "kind": "audio",
+  "expiresIn": 3600,
+  "transform": {
+    "format": "mp3"
+  }
+}
+```
+
+---
+
+## Video transforms (`/f/video/`)
+
+Processed by **FFmpeg**. First request transcodes + streams; result is cached for subsequent requests.
+
+```
+GET /f/video/<project-slug>/<path>?format=<target-format>
+```
+
+| Param | Type | Description |
+|---|---|---|
+| `format` | string | Target video or audio format |
+
+**Supported source → output formats:**
+
+| Source formats | Valid `format=` values |
+|---|---|
+| `mp4`, `mov`, `webm`, `mkv`, `avi` | `mp4`, `mov`, `webm`, `mkv`, `avi`, `mp3`, `aac`, `ogg`, `flac`, `m4a`, `wav` |
+
+Audio-only formats (`mp3`, `aac`, etc.) on a video source extract the audio track.
+
+### Examples
+
+```
+# Convert MP4 to WebM
+/f/video/my-app/clip.mp4?format=webm
+
+# Extract audio from video as MP3
+/f/video/my-app/clip.mp4?format=mp3
+
+# Convert MOV to MP4
+/f/video/my-app/clip.mov?format=mp4
+```
+
+### Via `sign/read`
+
+```json
+{
+  "path": "videos/clip.mp4",
+  "kind": "video",
+  "expiresIn": 7200,
+  "transform": {
+    "format": "webm"
+  }
+}
+```
+
+---
+
+## Transform caching
+
+**Images**: imgproxy transforms are stateless — every request is re-processed. Use HTTP `Cache-Control` headers (configured per project) to avoid repeated calls.
+
+**Audio / Video**: FFmpeg transcode results are saved to MinIO at `_cache/<projectId>/<path>__<format>` and recorded in the `transform_jobs` table. Subsequent requests for the same file + format hit the cache directly — no re-transcoding.
+
+Cache entries are **not automatically expired**. Delete them via the Files API if needed.
+
+---
+
+## No-transform fallback
+
+If you call `/f/image/` on a file without any transform params, Contento serves the raw file directly from MinIO (no imgproxy call).
+
+Similarly, `/f/audio/` and `/f/video/` without `?format=` serve the raw file.
+
+Use `/f/raw/` when you explicitly want to bypass transform routing.

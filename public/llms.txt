@@ -1,0 +1,43 @@
+# Contento
+
+> Self-hosted, API-first file management platform. Orchestrates MinIO (object storage), imgproxy (image transforms), and FFmpeg (audio/video transcoding) behind a clean REST API. Designed to be embedded into your application — your app never talks to MinIO or imgproxy directly. All delivery and uploads go through the Contento backend.
+
+Contento is a drop-in replacement for services like Bytescale or Cloudinary. You self-host it, point your app at it, and get signed uploads, signed reads, image/audio/video transforms, and per-project access control out of the box.
+
+Base URL (self-hosted): configured as `PUBLIC_URL` in your deployment.
+
+## Integration (start here)
+
+- [Integration Overview](/docs/integration): what Contento integration looks like end-to-end, auth model, key concepts
+- [Upload Files](/docs/integration/upload): sign/upload → PUT to backend proxy — curl + TypeScript examples
+- [Read Public Files](/docs/integration/read-public): direct /f/raw and /f/image delivery for public projects
+- [Read Private Files](/docs/integration/read-private): sign/read → fetch signed URL for private projects
+- [Transforms](/docs/integration/transforms): image resize/convert, audio/video transcode — all params
+- [Errors](/docs/integration/errors): 401/403/404/410/502 meanings and how to fix them
+
+## Concepts
+
+- [Overview](/docs/): what Contento is and when to use it
+- [Concepts](/docs/concepts): projects, buckets, API keys, visibility, transform cache
+- [Quick Start](/docs/quick-start): run locally with Docker Compose in 5 minutes
+
+## API Reference
+
+- [Authentication](/docs/api/authentication): API key format, scopes, error codes
+- [Projects](/docs/api/projects): CRUD for projects; controls bucket policy and cache settings
+- [API Keys](/docs/api/api-keys): create, list, delete keys with scopes
+- [Files](/docs/api/files): list and delete objects in a project bucket
+- [Sign Upload URL](/docs/api/sign-upload): mint a signed backend PUT URL for client uploads
+- [Sign Read URL](/docs/api/sign-read): mint a signed delivery URL (with optional transforms)
+- [Delivery](/docs/api/delivery): /f/raw, /f/image, /f/audio, /f/video — transform params reference
+
+## Self-hosting
+
+- [Docker Compose](/docs/self-hosting/docker-compose): full compose setup with all services
+- [Environment Variables](/docs/self-hosting/environment): all required and optional env vars
+- [Migrations](/docs/self-hosting/migrations): run database migrations
+
+## Optional
+
+- [/llms-full.txt](/llms-full.txt): full concatenated text of all documentation pages (for RAG/embedding)
+- [Raw Markdown access](/docs/integration.mdx): append .mdx to any /docs/ URL to get raw Markdown
