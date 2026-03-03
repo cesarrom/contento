@@ -62,11 +62,19 @@ export async function GET(
     const source = `s3://${project.bucketName}/${filePath}`;
     const imgproxyUrl = buildImgproxyUrl(source, opts);
 
-    const upstream = await fetch(imgproxyUrl, {
-      headers: {
-        "User-Agent": "contento-backend-proxy",
-      },
-    });
+    let upstream: Response;
+    try {
+      upstream = await fetch(imgproxyUrl, {
+        headers: {
+          "User-Agent": "contento-backend-proxy",
+        },
+      });
+    } catch {
+      return Response.json(
+        { error: "Upstream imgproxy unavailable" },
+        { status: 502 }
+      );
+    }
 
     const headers = new Headers();
     const ct = upstream.headers.get("content-type");

@@ -114,6 +114,7 @@ services:
 
       # ─── imgproxy (managed by this compose stack) ─────────────────────────────────
       # Generate key+salt with: xxd -g 2 -l 64 -p /dev/urandom | tr -d '\n'
+      IMGPROXY_ENDPOINT: http://imgproxy:8080
       IMGPROXY_KEY: ${IMGPROXY_KEY}
       IMGPROXY_SALT: ${IMGPROXY_SALT}
       IMGPROXY_ALLOW_INSECURE: 0
