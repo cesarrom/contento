@@ -2,16 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { presignDownload } from "@/lib/minio";
 import {
-  buildImgproxyUrl,
   isImage,
   isVideo,
   isAudio,
-  ImgproxyOptions,
 } from "@/lib/imgproxy";
 import { extractBearerToken, validateApiKey } from "@/lib/apikey";
 import { auth } from "@/lib/auth";
+import { createSignedUrlToken } from "@/lib/signed-url";
 
 export interface TransformRequest {
   format?: string;
@@ -61,30 +59,33 @@ export async function POST(
   const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
   const publicBase = process.env.PUBLIC_URL ?? "http://localhost:3000";
 
-  // ── Image: build a signed imgproxy URL ───────────────────────────────────────
-  if (transform && isImage(fileKey)) {
-    const imgOpts: ImgproxyOptions = {
-      format: transform.format,
-      width: transform.width,
-      height: transform.height,
-      quality: transform.quality,
-      blur: transform.blur,
-      resizingType: transform.fit as ImgproxyOptions["resizingType"],
-    };
-    const source = `s3://${project.bucketName}/${fileKey}`;
-    const url = buildImgproxyUrl(source, imgOpts);
-    return NextResponse.json({ data: { url, expiresAt } });
-  }
+  const kind = isImage(fileKey)
+    ? "image"
+    : isVideo(fileKey)
+      ? "video"
+      : isAudio(fileKey)
+        ? "audio"
+        : "raw";
 
-  // ── Video / Audio: return the /f/ delivery URL with ?format= query param ─────
-  // The delivery route handles on-demand transcoding and caching.
-  if (transform?.format && (isVideo(fileKey) || isAudio(fileKey))) {
-    const params = new URLSearchParams({ format: transform.format });
-    const url = `${publicBase}/f/${project.slug}/${fileKey}?${params.toString()}`;
-    return NextResponse.json({ data: { url, expiresAt } });
-  }
+  const allowedQuery: Record<string, string> = {};
+  if (transform?.format) allowedQuery.format = transform.format;
+  if (transform?.width) allowedQuery.w = String(transform.width);
+  if (transform?.height) allowedQuery.h = String(transform.height);
+  if (transform?.quality) allowedQuery.q = String(transform.quality);
+  if (transform?.blur) allowedQuery.blur = String(transform.blur);
+  if (transform?.fit) allowedQuery.fit = String(transform.fit);
 
-  // ── Raw presigned download URL (no transform) ────────────────────────────────
-  const url = await presignDownload(project.bucketName, fileKey, expiresIn);
+  const token = await createSignedUrlToken({
+    method: "GET",
+    kind: kind as "raw" | "image" | "audio" | "video",
+    projectSlug: project.slug,
+    projectId: project.id,
+    path: fileKey,
+    query: Object.keys(allowedQuery).length ? allowedQuery : undefined,
+    expiresIn,
+  });
+
+  const qs = new URLSearchParams({ ...allowedQuery, token });
+  const url = `${publicBase}/f/${kind}/${project.slug}/${fileKey}?${qs.toString()}`;
   return NextResponse.json({ data: { url, expiresAt } });
 }

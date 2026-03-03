@@ -30,7 +30,7 @@ export default async function ProjectFilesPage({
     lastModified: obj.LastModified?.toISOString() ?? null,
   }));
 
-  const publicBaseUrl = `${process.env.PUBLIC_URL ?? "http://localhost:3000"}/f/${project.slug}`;
+  const publicBaseUrl = `${process.env.PUBLIC_URL ?? "http://localhost:3000"}/f/raw/${project.slug}`;
 
   return (
     <div className="p-4 sm:p-8 max-w-5xl">

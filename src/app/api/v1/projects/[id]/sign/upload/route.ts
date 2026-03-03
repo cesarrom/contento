@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { presignUpload } from "@/lib/minio";
 import { extractBearerToken, validateApiKey } from "@/lib/apikey";
 import { auth } from "@/lib/auth";
+import { createSignedUrlToken } from "@/lib/signed-url";
 
 export async function POST(
   req: NextRequest,
@@ -38,8 +38,21 @@ export async function POST(
   if (!path?.trim()) return NextResponse.json({ error: "path is required" }, { status: 400 });
 
   const key = path.startsWith("/") ? path.slice(1) : path;
-  const url = await presignUpload(project.bucketName, key, contentType, expiresIn);
   const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+
+  const publicBase = process.env.PUBLIC_URL ?? "http://localhost:3000";
+  const token = await createSignedUrlToken({
+    method: "PUT",
+    kind: "upload",
+    projectSlug: project.slug,
+    projectId: project.id,
+    path: key,
+    query: { contentType },
+    expiresIn,
+  });
+
+  const qs = new URLSearchParams({ path: key, token });
+  const url = `${publicBase}/api/v1/projects/${project.id}/upload?${qs.toString()}`;
 
   return NextResponse.json({ data: { url, method: "PUT", expiresAt } });
 }
