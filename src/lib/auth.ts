@@ -29,7 +29,7 @@ export const authConfig: NextAuthConfig = {
     },
   },
   pages: {
-    signIn: "/admin/login",
+    signIn: "/login",
   },
 };
 

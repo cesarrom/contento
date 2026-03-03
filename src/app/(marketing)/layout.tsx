@@ -23,7 +23,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
               GitHub
             </Link>
             <Link
-              href="/admin/login"
+              href="/login"
               className="hover:text-foreground transition-colors"
             >
               SSO Login
