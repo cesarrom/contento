@@ -70,7 +70,7 @@ export function buildImgproxyUrl(
   const hmac = createHmac("sha256", keyBuf);
   hmac.update(saltBuf);
   hmac.update(path);
-  const signature = hmac.digest().toString("base64url").slice(0, 32);
+  const signature = hmac.digest().toString("base64url");
 
   return `${IMGPROXY_ENDPOINT}/${signature}${path}`;
 }
