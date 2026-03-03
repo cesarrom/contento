@@ -3,10 +3,10 @@ import { db } from "@/lib/db/client";
 import { apiKeys } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { extractBearerToken, validateApiKey } from "@/lib/apikey";
-import { auth } from "@/lib/auth";
+import { getAdminSession } from "@/lib/admin-auth";
 
 async function requireAdmin(req: NextRequest) {
-  const session = await auth();
+  const session = await getAdminSession();
   if (session) return true;
   const token = extractBearerToken(req);
   if (token) {

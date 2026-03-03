@@ -4,7 +4,7 @@ import { projects } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { listObjects, deleteObject } from "@/lib/minio";
 import { extractBearerToken, validateApiKey } from "@/lib/apikey";
-import { auth } from "@/lib/auth";
+import { getAdminSession } from "@/lib/admin-auth";
 
 async function resolveProject(id: string) {
   const [project] = await db
@@ -16,7 +16,7 @@ async function resolveProject(id: string) {
 }
 
 async function requireWriteAccess(req: NextRequest, projectId: string) {
-  const session = await auth();
+  const session = await getAdminSession();
   if (session) return true;
   const token = extractBearerToken(req);
   if (token) {
@@ -27,7 +27,7 @@ async function requireWriteAccess(req: NextRequest, projectId: string) {
 }
 
 async function requireReadAccess(req: NextRequest, projectId: string) {
-  const session = await auth();
+  const session = await getAdminSession();
   if (session) return true;
   const token = extractBearerToken(req);
   if (token) {
