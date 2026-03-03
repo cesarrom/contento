@@ -62,6 +62,8 @@ export function FileBrowser({
     "image"
   );
   const [transformFormat, setTransformFormat] = useState<"" | "webp" | "avif" | "jpg" | "png">("");
+  const [audioFormat, setAudioFormat] = useState<"" | "mp3" | "aac" | "ogg" | "flac" | "m4a" | "wav">("");
+  const [videoFormat, setVideoFormat] = useState<"" | "mp4" | "webm" | "mov" | "mkv" | "avi">("");
   const [transformWidth, setTransformWidth] = useState("");
   const [transformHeight, setTransformHeight] = useState("");
   const [transformQuality, setTransformQuality] = useState("");
@@ -94,6 +96,8 @@ export function FileBrowser({
     setTransformKey(key);
     setTransformKind("image");
     setTransformFormat("");
+    setAudioFormat("");
+    setVideoFormat("");
     setTransformWidth("");
     setTransformHeight("");
     setTransformQuality("");
@@ -107,12 +111,23 @@ export function FileBrowser({
 
     try {
       const transform: Record<string, unknown> = {};
-      if (transformFormat) transform.format = transformFormat;
-      if (transformWidth.trim()) transform.width = Number(transformWidth);
-      if (transformHeight.trim()) transform.height = Number(transformHeight);
-      if (transformQuality.trim()) transform.quality = Number(transformQuality);
-      if (transformBlur.trim()) transform.blur = Number(transformBlur);
-      if (transformFit) transform.fit = transformFit;
+
+      if (transformKind === "image") {
+        if (transformFormat) transform.format = transformFormat;
+        if (transformWidth.trim()) transform.width = Number(transformWidth);
+        if (transformHeight.trim()) transform.height = Number(transformHeight);
+        if (transformQuality.trim()) transform.quality = Number(transformQuality);
+        if (transformBlur.trim()) transform.blur = Number(transformBlur);
+        if (transformFit) transform.fit = transformFit;
+      }
+
+      if (transformKind === "audio") {
+        if (audioFormat) transform.format = audioFormat;
+      }
+
+      if (transformKind === "video") {
+        if (videoFormat) transform.format = videoFormat;
+      }
 
       const signRes = await fetch(`/api/v1/projects/${projectId}/sign/read`, {
         method: "POST",
@@ -255,142 +270,264 @@ export function FileBrowser({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {transformKind === "image" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Format</Label>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant={transformFormat === "" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTransformFormat("")}
+                    >
+                      Original
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={transformFormat === "webp" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTransformFormat("webp")}
+                    >
+                      WebP
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={transformFormat === "avif" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTransformFormat("avif")}
+                    >
+                      AVIF
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={transformFormat === "jpg" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTransformFormat("jpg")}
+                    >
+                      JPG
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={transformFormat === "png" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTransformFormat("png")}
+                    >
+                      PNG
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Fit</Label>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant={transformFit === "" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTransformFit("")}
+                    >
+                      Default
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={transformFit === "auto" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTransformFit("auto")}
+                    >
+                      Auto
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={transformFit === "cover" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTransformFit("cover")}
+                    >
+                      Cover
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={transformFit === "contain" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTransformFit("contain")}
+                    >
+                      Contain
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="transform-width">Width</Label>
+                  <Input
+                    id="transform-width"
+                    inputMode="numeric"
+                    value={transformWidth}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      if (/^\d*$/.test(next)) setTransformWidth(next);
+                    }}
+                    placeholder="e.g. 800"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="transform-height">Height</Label>
+                  <Input
+                    id="transform-height"
+                    inputMode="numeric"
+                    value={transformHeight}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      if (/^\d*$/.test(next)) setTransformHeight(next);
+                    }}
+                    placeholder="e.g. 600"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="transform-quality">Quality</Label>
+                  <Input
+                    id="transform-quality"
+                    inputMode="numeric"
+                    value={transformQuality}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      if (/^\d*$/.test(next)) setTransformQuality(next);
+                    }}
+                    placeholder="1-100"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="transform-blur">Blur</Label>
+                  <Input
+                    id="transform-blur"
+                    inputMode="numeric"
+                    value={transformBlur}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      if (/^\d*(\.\d*)?$/.test(next)) setTransformBlur(next);
+                    }}
+                    placeholder="e.g. 10"
+                  />
+                </div>
+              </div>
+            )}
+
+            {transformKind === "audio" && (
               <div className="space-y-2">
-                <Label>Format</Label>
+                <Label>Audio format</Label>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
-                    variant={transformFormat === "" ? "default" : "outline"}
+                    variant={audioFormat === "" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setTransformFormat("")}
+                    onClick={() => setAudioFormat("")}
                   >
                     Original
                   </Button>
                   <Button
                     type="button"
-                    variant={transformFormat === "webp" ? "default" : "outline"}
+                    variant={audioFormat === "mp3" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setTransformFormat("webp")}
+                    onClick={() => setAudioFormat("mp3")}
                   >
-                    WebP
+                    MP3
                   </Button>
                   <Button
                     type="button"
-                    variant={transformFormat === "avif" ? "default" : "outline"}
+                    variant={audioFormat === "aac" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setTransformFormat("avif")}
+                    onClick={() => setAudioFormat("aac")}
                   >
-                    AVIF
+                    AAC
                   </Button>
                   <Button
                     type="button"
-                    variant={transformFormat === "jpg" ? "default" : "outline"}
+                    variant={audioFormat === "ogg" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setTransformFormat("jpg")}
+                    onClick={() => setAudioFormat("ogg")}
                   >
-                    JPG
+                    OGG
                   </Button>
                   <Button
                     type="button"
-                    variant={transformFormat === "png" ? "default" : "outline"}
+                    variant={audioFormat === "flac" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setTransformFormat("png")}
+                    onClick={() => setAudioFormat("flac")}
                   >
-                    PNG
+                    FLAC
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={audioFormat === "m4a" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setAudioFormat("m4a")}
+                  >
+                    M4A
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={audioFormat === "wav" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setAudioFormat("wav")}
+                  >
+                    WAV
                   </Button>
                 </div>
               </div>
+            )}
+
+            {transformKind === "video" && (
               <div className="space-y-2">
-                <Label>Fit</Label>
+                <Label>Video format</Label>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
-                    variant={transformFit === "" ? "default" : "outline"}
+                    variant={videoFormat === "" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setTransformFit("")}
+                    onClick={() => setVideoFormat("")}
                   >
-                    Default
+                    Original
                   </Button>
                   <Button
                     type="button"
-                    variant={transformFit === "auto" ? "default" : "outline"}
+                    variant={videoFormat === "mp4" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setTransformFit("auto")}
+                    onClick={() => setVideoFormat("mp4")}
                   >
-                    Auto
+                    MP4
                   </Button>
                   <Button
                     type="button"
-                    variant={transformFit === "cover" ? "default" : "outline"}
+                    variant={videoFormat === "webm" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setTransformFit("cover")}
+                    onClick={() => setVideoFormat("webm")}
                   >
-                    Cover
+                    WebM
                   </Button>
                   <Button
                     type="button"
-                    variant={transformFit === "contain" ? "default" : "outline"}
+                    variant={videoFormat === "mov" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setTransformFit("contain")}
+                    onClick={() => setVideoFormat("mov")}
                   >
-                    Contain
+                    MOV
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={videoFormat === "mkv" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setVideoFormat("mkv")}
+                  >
+                    MKV
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={videoFormat === "avi" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setVideoFormat("avi")}
+                  >
+                    AVI
                   </Button>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="transform-width">Width</Label>
-                <Input
-                  id="transform-width"
-                  inputMode="numeric"
-                  value={transformWidth}
-                  onChange={(e) => {
-                    const next = e.target.value;
-                    if (/^\d*$/.test(next)) setTransformWidth(next);
-                  }}
-                  placeholder="e.g. 800"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="transform-height">Height</Label>
-                <Input
-                  id="transform-height"
-                  inputMode="numeric"
-                  value={transformHeight}
-                  onChange={(e) => {
-                    const next = e.target.value;
-                    if (/^\d*$/.test(next)) setTransformHeight(next);
-                  }}
-                  placeholder="e.g. 600"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="transform-quality">Quality</Label>
-                <Input
-                  id="transform-quality"
-                  inputMode="numeric"
-                  value={transformQuality}
-                  onChange={(e) => {
-                    const next = e.target.value;
-                    if (/^\d*$/.test(next)) setTransformQuality(next);
-                  }}
-                  placeholder="1-100"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="transform-blur">Blur</Label>
-                <Input
-                  id="transform-blur"
-                  inputMode="numeric"
-                  value={transformBlur}
-                  onChange={(e) => {
-                    const next = e.target.value;
-                    if (/^\d*(\.\d*)?$/.test(next)) setTransformBlur(next);
-                  }}
-                  placeholder="e.g. 10"
-                />
-              </div>
-            </div>
+            )}
           </div>
 
           <DialogFooter>
