@@ -1,0 +1,98 @@
+import { NextRequest } from "next/server";
+import { getObjectResponse } from "@/lib/minio";
+import { buildImgproxyUrl, ImgproxyOptions } from "@/lib/imgproxy";
+import { resolveProjectBySlug, requireReadAccess, requireSignedToken, unauthorized } from "@/lib/f-proxy";
+
+export const dynamic = "force-dynamic";
+
+function parseTransformParams(searchParams: URLSearchParams): ImgproxyOptions {
+  const opts: ImgproxyOptions = {};
+  const format = searchParams.get("format");
+  if (format) opts.format = format;
+  const w = searchParams.get("w");
+  if (w) opts.width = parseInt(w, 10);
+  const h = searchParams.get("h");
+  if (h) opts.height = parseInt(h, 10);
+  const q = searchParams.get("q");
+  if (q) opts.quality = parseInt(q, 10);
+  const blur = searchParams.get("blur");
+  if (blur) opts.blur = parseFloat(blur);
+  const fit = searchParams.get("fit");
+  if (fit) opts.resizingType = fit as ImgproxyOptions["resizingType"];
+  return opts;
+}
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ projectSlug: string; path: string[] }> }
+) {
+  const { projectSlug, path: pathSegments } = await params;
+  const filePath = pathSegments.join("/");
+  const { searchParams } = new URL(req.url);
+
+  const project = await resolveProjectBySlug(projectSlug);
+  if (!project) return Response.json({ error: "Project not found" }, { status: 404 });
+
+  const hasTransform =
+    searchParams.get("format") ||
+    searchParams.get("w") ||
+    searchParams.get("h") ||
+    searchParams.get("q") ||
+    searchParams.get("blur") ||
+    searchParams.get("fit");
+
+  const allowedQueryKeys = ["format", "w", "h", "q", "blur", "fit"];
+
+  if (project.visibility === "private") {
+    const okKey = await requireReadAccess(req, project.id);
+    if (!okKey) {
+      const okToken = await requireSignedToken(req, {
+        kind: "image",
+        projectSlug,
+        projectId: project.id,
+        path: filePath,
+        allowedQueryKeys,
+      });
+      if (!okToken) return unauthorized();
+    }
+  }
+
+  if (hasTransform) {
+    const opts = parseTransformParams(searchParams);
+    const source = `s3://${project.bucketName}/${filePath}`;
+    const imgproxyUrl = buildImgproxyUrl(source, opts);
+
+    const upstream = await fetch(imgproxyUrl, {
+      headers: {
+        "User-Agent": "contento-backend-proxy",
+      },
+    });
+
+    const headers = new Headers();
+    const ct = upstream.headers.get("content-type");
+    if (ct) headers.set("Content-Type", ct);
+    const cl = upstream.headers.get("content-length");
+    if (cl) headers.set("Content-Length", cl);
+    const cc = upstream.headers.get("cache-control");
+    if (cc) headers.set("Cache-Control", cc);
+
+    return new Response(upstream.body, {
+      status: upstream.status,
+      headers,
+    });
+  }
+
+  const range = req.headers.get("range") ?? undefined;
+  const obj = await getObjectResponse(project.bucketName, filePath, range);
+
+  const headers = new Headers();
+  headers.set("Accept-Ranges", "bytes");
+  if (obj.contentType) headers.set("Content-Type", obj.contentType);
+  if (obj.contentLength != null) headers.set("Content-Length", String(obj.contentLength));
+  if (obj.contentRange) headers.set("Content-Range", obj.contentRange);
+
+  return new Response(obj.body as unknown as BodyInit, {
+    status: range ? 206 : 200,
+    headers,
+  });
+}

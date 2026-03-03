@@ -8,6 +8,8 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { Readable } from "stream";
+import type { ReadableStream as WebReadableStream } from "stream/web";
 
 const endpoint = process.env.MINIO_ENDPOINT ?? "http://localhost:9000";
 const publicEndpoint =
@@ -104,6 +106,28 @@ export async function getObject(
   return result.Body as unknown as NodeJS.ReadableStream;
 }
 
+export async function getObjectResponse(
+  bucketName: string,
+  key: string,
+  range?: string
+): Promise<{
+  body: NodeJS.ReadableStream;
+  contentType: string | undefined;
+  contentLength: number | undefined;
+  contentRange: string | undefined;
+}> {
+  const result = await s3.send(
+    new GetObjectCommand({ Bucket: bucketName, Key: key, Range: range })
+  );
+  if (!result.Body) throw new Error(`Empty body for ${bucketName}/${key}`);
+  return {
+    body: result.Body as unknown as NodeJS.ReadableStream,
+    contentType: result.ContentType,
+    contentLength: result.ContentLength,
+    contentRange: result.ContentRange,
+  };
+}
+
 export async function putObject(
   bucketName: string,
   key: string,
@@ -111,6 +135,27 @@ export async function putObject(
 ): Promise<void> {
   await s3.send(
     new PutObjectCommand({ Bucket: bucketName, Key: key, Body: body })
+  );
+}
+
+export async function putObjectStream(
+  bucketName: string,
+  key: string,
+  body: WebReadableStream<Uint8Array> | NodeJS.ReadableStream,
+  contentType?: string
+): Promise<void> {
+  const nodeBody: Readable =
+    typeof (body as WebReadableStream<Uint8Array>).getReader === "function"
+      ? (Readable.fromWeb(body as WebReadableStream<Uint8Array>) as unknown as Readable)
+      : (body as unknown as Readable);
+
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+      Body: nodeBody,
+      ContentType: contentType,
+    })
   );
 }
 
