@@ -12,7 +12,7 @@ export function SignOutButton() {
         const cfg = (await cfgRes.json()) as { devAuthEnabled: boolean };
         if (cfg.devAuthEnabled) {
           await fetch("/api/dev-auth/logout", { method: "POST" });
-          window.location.href = "/admin/login";
+          window.location.href = "/login";
           return;
         }
       }
@@ -20,7 +20,7 @@ export function SignOutButton() {
       // ignore
     }
 
-    await signOut({ callbackUrl: "/admin/login" });
+    await signOut({ callbackUrl: "/login" });
   }
 
   return (

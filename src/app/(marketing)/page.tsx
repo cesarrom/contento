@@ -94,7 +94,7 @@ export default function LandingPage() {
             Read the docs
           </Link>
           <Link
-            href="/admin/login"
+            href="/login"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-border text-muted-foreground font-medium hover:bg-muted hover:text-foreground transition-colors"
           >
             SSO Login
