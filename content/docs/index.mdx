@@ -17,7 +17,7 @@ For contributors, user-facing changes are documented in lightweight PRDs under `
 - **Store files** in S3-compatible buckets (MinIO), one bucket per project.
 - **Transform images** on the fly — resize, crop, convert format (WebP, AVIF, JPEG, PNG).
 - **Convert video and audio** on demand — FFmpeg runs inline and caches the result.
-- **Issue signed URLs** — presigned uploads direct from the client, signed reads via imgproxy or MinIO.
+- **Issue signed URLs** — backend-signed URLs that point to Contento (the backend proxies to internal services).
 - **Manage access** — projects are public or private; API keys are scoped to read / write / admin.
 
 ## Architecture
@@ -29,8 +29,9 @@ Browser / App
 Next.js (this app)
     ├── /admin         Admin UI (SSO via Authentik)
     ├── /api/v1        REST API (API key auth)
-    └── /f/:slug       Delivery endpoint
-           ├── images  → redirect to imgproxy
+    └── /f/*           Delivery endpoints (backend proxy)
+           ├── raw     → stream from MinIO
+           ├── image   → imgproxy internal → stream to client
            └── media   → FFmpeg inline → stream to client
                                        → cache in MinIO
 MinIO       ← object storage

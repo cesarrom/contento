@@ -52,6 +52,8 @@ Keys can have an optional **expiry date**. Expired keys are rejected.
 Visibility affects the MinIO bucket policy and the delivery route auth check. It does not affect
 the REST API — all `/api/v1/` routes always require authentication.
 
+Delivery URLs use the `/f/{raw,image,audio,video}/...` scheme.
+
 ## Transform cache
 
 When a video or audio file is converted via FFmpeg (e.g. `video.mp4?format=mp3`), the result is:
@@ -60,8 +62,8 @@ When a video or audio file is converted via FFmpeg (e.g. `video.mp4?format=mp3`)
 2. Saved to MinIO at `_cache/<projectId>/<originalPath>__<format>`
 3. Recorded in the `transform_jobs` table with `status: done`
 
-Subsequent requests for the same file + format hit the cache and get an instant MinIO presigned
-redirect — no re-transcoding.
+Subsequent requests for the same file + format hit the cache and stream the cached object through
+Contento — no re-transcoding.
 
 The cache is scoped per project. Two projects with a file at the same path get separate cache
 entries.
