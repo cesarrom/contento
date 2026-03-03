@@ -77,6 +77,10 @@ export async function PUT(
   }
 
   const contentType = req.headers.get("content-type") ?? undefined;
+  const contentLengthHeader = req.headers.get("content-length");
+  const contentLength = contentLengthHeader
+    ? Number.parseInt(contentLengthHeader, 10)
+    : undefined;
 
   if (token) {
     const payload = await verifySignedUrlToken(token);
@@ -92,7 +96,8 @@ export async function PUT(
     project.bucketName,
     path,
     req.body as unknown as WebReadableStream<Uint8Array>,
-    contentType
+    contentType,
+    Number.isFinite(contentLength as number) ? (contentLength as number) : undefined
   );
 
   return NextResponse.json({ data: { uploaded: true, path } }, { status: 201 });
