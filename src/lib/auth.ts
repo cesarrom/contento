@@ -8,6 +8,7 @@ const authentikConfigured = Boolean(
 );
 
 export const authConfig: NextAuthConfig = {
+  trustHost: true,
   providers: authentikConfigured
     ? [
         {

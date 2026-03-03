@@ -109,6 +109,7 @@ services:
       DEV_AUTH_PASSWORD: ${DEV_AUTH_PASSWORD:-admin}
       DEV_AUTH_SECRET: ${DEV_AUTH_SECRET:-dev-auth-secret}
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-1}
     depends_on:
       contento-migrator:
         condition: service_completed_successfully
