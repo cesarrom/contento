@@ -71,7 +71,8 @@ Content-Type: application/json
   "name": "New Name",
   "visibility": "public",
   "deliveryCacheEnabled": true,
-  "deliveryCacheTtlSeconds": 600
+  "deliveryCacheTtlSeconds": 600,
+  "allowedOrigins": ["https://app.example.com", "https://admin.example.com"]
 }
 ```
 
@@ -81,6 +82,7 @@ Content-Type: application/json
 | `visibility` | `"public"` \| `"private"` | Changes bucket policy immediately. |
 | `deliveryCacheEnabled` | boolean | Whether to emit `Cache-Control` headers on transformed delivery responses. Default: `true`. |
 | `deliveryCacheTtlSeconds` | integer | `max-age` value in seconds for `Cache-Control` headers. Default: `300`. Set to `0` to disable caching while keeping the flag enabled. |
+| `allowedOrigins` | string[] | List of CORS origins allowed to make cross-origin requests to this project's delivery and API endpoints. Each must be a full URL including protocol (e.g., `https://app.example.com`). |
 
 Changing `visibility` updates the MinIO bucket policy immediately.
 
