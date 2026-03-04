@@ -1,7 +1,7 @@
-import { NextRequest } from "next/server";
 import * as nodePath from "path";
 import { getObjectResponse, getObject, putObject } from "@/lib/minio";
-import { resolveProjectBySlug, requireReadAccess, requireSignedToken, unauthorized } from "@/lib/f-proxy";
+import { requireReadAccess, requireSignedToken, unauthorized } from "@/lib/f-proxy";
+import { withProjectSlugCors, GENERIC_PROJECT_SLUG_OPTIONS } from "@/lib/project-cors";
 import { db } from "@/lib/db/client";
 import { transformJobs } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
@@ -11,18 +11,18 @@ export const dynamic = "force-dynamic";
 
 const MEDIA_FORMATS = new Set(["mp4", "mov", "webm", "mkv", "avi"]);
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ projectSlug: string; path: string[] }> }
-) {
-  const { projectSlug, path: pathSegments } = await params;
-  const filePath = pathSegments.join("/");
-  const { searchParams } = new URL(req.url);
+export const OPTIONS = GENERIC_PROJECT_SLUG_OPTIONS;
 
-  const project = await resolveProjectBySlug(projectSlug);
-  if (!project) return Response.json({ error: "Project not found" }, { status: 404 });
+export const GET = withProjectSlugCors(
+  "video",
+  async ({ req, context, project }) => {
+    const { projectSlug, path: pathSegments } = await context.params;
+    const filePath = pathSegments.join("/");
+    const { searchParams } = new URL(req.url);
 
-  const allowedQueryKeys = ["format"];
+    if (!project) return Response.json({ error: "Project not found" }, { status: 404 });
+
+    const allowedQueryKeys = ["format"];
 
   if (project.visibility === "private") {
     const okKey = await requireReadAccess(req, project.id);
@@ -156,4 +156,5 @@ export async function GET(
     status: range ? 206 : 200,
     headers,
   });
-}
+  }
+);

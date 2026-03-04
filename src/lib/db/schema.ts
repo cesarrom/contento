@@ -15,6 +15,7 @@ export const projects = pgTable("projects", {
   name: text("name").notNull(),
   visibility: text("visibility").notNull().default("private"), // 'public' | 'private'
   bucketName: text("bucket_name").notNull(),
+  allowedOrigins: text("allowed_origins").array().notNull().default([]),
   deliveryCacheEnabled: boolean("delivery_cache_enabled").notNull().default(true),
   deliveryCacheTtlSeconds: integer("delivery_cache_ttl_seconds").notNull().default(300),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),

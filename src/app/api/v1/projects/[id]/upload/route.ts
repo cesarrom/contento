@@ -1,38 +1,31 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db/client";
-import { projects } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
 import { extractBearerToken, validateApiKey } from "@/lib/apikey";
 import { getAdminSession } from "@/lib/admin-auth";
 import { verifySignedUrlToken } from "@/lib/signed-url";
 import { putObjectStream } from "@/lib/minio";
+import { withProjectIdCors, GENERIC_PROJECT_ID_OPTIONS } from "@/lib/project-cors";
 import type { ReadableStream as WebReadableStream } from "stream/web";
 
 export const dynamic = "force-dynamic";
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
+export const OPTIONS = GENERIC_PROJECT_ID_OPTIONS
 
-  const { searchParams } = new URL(req.url);
-  const path = searchParams.get("path") ?? "";
-  const token = searchParams.get("token") ?? "";
+export const PUT = withProjectIdCors(
+  "api",
+  async ({ req, context, project }) => {
+    const { id } = await context.params;
 
-  if (!path.trim()) {
-    return NextResponse.json({ error: "path is required" }, { status: 400 });
-  }
+    const { searchParams } = new URL(req.url);
+    const path = searchParams.get("path") ?? "";
+    const token = searchParams.get("token") ?? "";
 
-  const [project] = await db
-    .select()
-    .from(projects)
-    .where(eq(projects.id, id))
-    .limit(1);
+    if (!path.trim()) {
+      return NextResponse.json({ error: "path is required" }, { status: 400 });
+    }
 
-  if (!project) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
+    if (!project) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
   // Allow server-side/admin usage via session or API key.
   const session = await getAdminSession();
@@ -101,4 +94,5 @@ export async function PUT(
   );
 
   return NextResponse.json({ data: { uploaded: true, path } }, { status: 201 });
-}
+  }
+);
