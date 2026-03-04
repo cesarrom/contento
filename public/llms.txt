@@ -18,7 +18,7 @@ Base URL (self-hosted): configured as `PUBLIC_URL` in your deployment.
 ## Concepts
 
 - [Overview](/docs/): what Contento is and when to use it
-- [Concepts](/docs/concepts): projects, buckets, API keys, visibility, transform cache
+- [Concepts](/docs/concepts): projects, buckets, API keys, visibility, transform cache, CORS
 - [Quick Start](/docs/quick-start): run locally with Docker Compose in 5 minutes
 
 ## API Reference
