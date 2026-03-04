@@ -1,19 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db/client";
-import { projects } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 import { listObjects, deleteObject } from "@/lib/minio";
 import { extractBearerToken, validateApiKey } from "@/lib/apikey";
 import { getAdminSession } from "@/lib/admin-auth";
+import { withProjectIdCors, GENERIC_PROJECT_ID_OPTIONS } from "@/lib/project-cors";
 
-async function resolveProject(id: string) {
-  const [project] = await db
-    .select()
-    .from(projects)
-    .where(eq(projects.id, id))
-    .limit(1);
-  return project ?? null;
-}
+export const OPTIONS = GENERIC_PROJECT_ID_OPTIONS;
 
 async function requireWriteAccess(req: NextRequest, projectId: string) {
   const session = await getAdminSession();
@@ -37,45 +28,45 @@ async function requireReadAccess(req: NextRequest, projectId: string) {
   return false;
 }
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
-  const project = await resolveProject(id);
-  if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+export const GET = withProjectIdCors(
+  "api",
+  async ({ req, context, project }) => {
+    const { id } = await context.params;
 
-  const allowed = await requireReadAccess(req, id);
-  if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const { searchParams } = new URL(req.url);
-  const prefix = searchParams.get("prefix") ?? undefined;
+    const allowed = await requireReadAccess(req, id);
+    if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const objects = await listObjects(project.bucketName, prefix);
-  const data = objects.map((obj) => ({
-    key: obj.Key,
-    size: obj.Size,
-    lastModified: obj.LastModified,
-  }));
+    const { searchParams } = new URL(req.url);
+    const prefix = searchParams.get("prefix") ?? undefined;
 
-  return NextResponse.json({ data });
-}
+    const objects = await listObjects(project.bucketName, prefix);
+    const data = objects.map((obj) => ({
+      key: obj.Key,
+      size: obj.Size,
+      lastModified: obj.LastModified,
+    }));
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
-  const project = await resolveProject(id);
-  if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ data });
+  }
+);
 
-  const allowed = await requireWriteAccess(req, id);
-  if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export const DELETE = withProjectIdCors(
+  "api",
+  async ({ req, context, project }) => {
+    const { id } = await context.params;
 
-  const body = await req.json();
-  const { key } = body as { key: string };
-  if (!key) return NextResponse.json({ error: "key is required" }, { status: 400 });
+    if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await deleteObject(project.bucketName, key);
-  return NextResponse.json({ data: { deleted: true } });
-}
+    const allowed = await requireWriteAccess(req, id);
+    if (!allowed) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const body = await req.json();
+    const { key } = body as { key: string };
+    if (!key) return NextResponse.json({ error: "key is required" }, { status: 400 });
+
+    await deleteObject(project.bucketName, key);
+    return NextResponse.json({ data: { deleted: true } });
+  }
+);
