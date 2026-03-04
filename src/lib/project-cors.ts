@@ -83,7 +83,7 @@ export function withProjectIdCors<TParams extends { id: string }>(
   );
 }
 
-export function createOptionsHandler(allowedMethods = "GET,OPTIONS") {
+export function createOptionsHandler(allowedMethods = "GET,OPTIONS,PUT,DELETE,POST") {
   return async function OPTIONS(req: NextRequest) {
     const origin = req.headers.get("origin") ?? "*";
     const requestedMethod = req.headers.get("access-control-request-method") ?? allowedMethods;
