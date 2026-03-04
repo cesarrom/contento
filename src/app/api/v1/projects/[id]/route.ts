@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { setBucketPublic, setBucketPrivate } from "@/lib/minio";
 import { extractBearerToken, validateApiKey } from "@/lib/apikey";
 import { getAdminSession } from "@/lib/admin-auth";
+import { parseAllowedOriginsInput } from "@/lib/origins";
 
 async function requireAdmin(req: NextRequest) {
   const session = await getAdminSession();
@@ -44,11 +45,12 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { name, visibility, deliveryCacheEnabled, deliveryCacheTtlSeconds } = body as {
+  const { name, visibility, deliveryCacheEnabled, deliveryCacheTtlSeconds, allowedOrigins } = body as {
     name?: string;
     visibility?: "public" | "private";
     deliveryCacheEnabled?: boolean;
     deliveryCacheTtlSeconds?: number;
+    allowedOrigins?: string[];
   };
 
   const [existing] = await db
@@ -76,6 +78,14 @@ export async function PATCH(
   if (typeof deliveryCacheTtlSeconds === "number") {
     const ttl = Math.max(0, Math.floor(deliveryCacheTtlSeconds));
     updates.deliveryCacheTtlSeconds = ttl;
+  }
+
+  if (Array.isArray(allowedOrigins)) {
+    const parsed = parseAllowedOriginsInput(allowedOrigins);
+    if (parsed.error) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+    updates.allowedOrigins = parsed.origins;
   }
 
   const [updated] = await db

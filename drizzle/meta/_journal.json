@@ -15,6 +15,13 @@
       "when": 1772557584250,
       "tag": "0001_fat_human_fly",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772641355542,
+      "tag": "0002_reflective_paibok",
+      "breakpoints": true
     }
   ]
 }

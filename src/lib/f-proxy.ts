@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db/client";
-import { projects } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 import { extractBearerToken, validateApiKey } from "@/lib/apikey";
 import {
   matchesQuerySubset,
@@ -10,15 +7,6 @@ import {
 } from "@/lib/signed-url";
 
 export type FKind = "raw" | "image" | "audio" | "video";
-
-export async function resolveProjectBySlug(projectSlug: string) {
-  const [project] = await db
-    .select()
-    .from(projects)
-    .where(eq(projects.slug, projectSlug))
-    .limit(1);
-  return project ?? null;
-}
 
 export async function requireReadAccess(
   req: NextRequest,

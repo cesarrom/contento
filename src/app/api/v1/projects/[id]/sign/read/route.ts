@@ -1,7 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db/client";
-import { projects } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
 import {
   isImage,
   isVideo,
@@ -10,6 +7,7 @@ import {
 import { extractBearerToken, validateApiKey } from "@/lib/apikey";
 import { getAdminSession } from "@/lib/admin-auth";
 import { createSignedUrlToken } from "@/lib/signed-url";
+import { withProjectIdCors, GENERIC_PROJECT_ID_OPTIONS } from "@/lib/project-cors";
 
 export interface TransformRequest {
   format?: string;
@@ -20,27 +18,23 @@ export interface TransformRequest {
   fit?: string;
 }
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
+export const OPTIONS = GENERIC_PROJECT_ID_OPTIONS
 
-  const session = await getAdminSession();
-  if (!session) {
-    const token = extractBearerToken(req);
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const key = await validateApiKey(token, "read");
-    if (!key || key.projectId !== id)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const POST = withProjectIdCors(
+  "api",
+  async ({ req, context, project }) => {
+    const { id } = await context.params;
 
-  const [project] = await db
-    .select()
-    .from(projects)
-    .where(eq(projects.id, id))
-    .limit(1);
-  if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const session = await getAdminSession();
+    if (!session) {
+      const token = extractBearerToken(req);
+      if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const key = await validateApiKey(token, "read");
+      if (!key || key.projectId !== id)
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json();
   const {
@@ -92,4 +86,5 @@ export async function POST(
   const qs = new URLSearchParams({ ...allowedQuery, token });
   const url = `${publicBase}/f/${kind}/${project.slug}/${fileKey}?${qs.toString()}`;
   return NextResponse.json({ data: { url, expiresAt } });
-}
+  }
+);
