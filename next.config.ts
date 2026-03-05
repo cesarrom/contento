@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   output: "standalone",
   serverExternalPackages: ["postgres"],
+  httpAgentOptions: {
+    keepAlive: true,
+  },
   async rewrites() {
     return [
       {

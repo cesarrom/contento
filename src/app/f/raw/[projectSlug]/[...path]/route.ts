@@ -29,10 +29,13 @@ export const GET = withProjectSlugCors<{ projectSlug: string; path: string[] }>(
 
     const headers = new Headers();
     headers.set("Accept-Ranges", "bytes");
+    headers.set("Connection", "keep-alive");
+    headers.set("Keep-Alive", "timeout=60, max=1000");
     if (obj.contentType) headers.set("Content-Type", obj.contentType);
     if (obj.contentLength != null) headers.set("Content-Length", String(obj.contentLength));
     if (obj.contentRange) headers.set("Content-Range", obj.contentRange);
 
+    // Stream directly without buffering for large files
     return new Response(obj.body as unknown as BodyInit, {
       status: range ? 206 : 200,
       headers,

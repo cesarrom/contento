@@ -63,6 +63,8 @@ export const GET = withProjectSlugCors(
 
         const headers = new Headers();
         headers.set("Accept-Ranges", "bytes");
+        headers.set("Connection", "keep-alive");
+        headers.set("Keep-Alive", "timeout=60, max=1000");
         if (obj.contentType) headers.set("Content-Type", obj.contentType);
         if (obj.contentLength != null) headers.set("Content-Length", String(obj.contentLength));
         if (obj.contentRange) headers.set("Content-Range", obj.contentRange);
@@ -149,6 +151,8 @@ export const GET = withProjectSlugCors(
 
     const headers = new Headers();
     headers.set("Accept-Ranges", "bytes");
+    headers.set("Connection", "keep-alive");
+    headers.set("Keep-Alive", "timeout=60, max=1000");
     if (obj.contentType) headers.set("Content-Type", obj.contentType);
     if (obj.contentLength != null) headers.set("Content-Length", String(obj.contentLength));
     if (obj.contentRange) headers.set("Content-Range", obj.contentRange);
