@@ -10,10 +10,20 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Readable } from "stream";
 import type { ReadableStream as WebReadableStream } from "stream/web";
+import { Agent } from "https";
 
 const endpoint = process.env.MINIO_ENDPOINT ?? "http://localhost:9000";
 const publicEndpoint =
   process.env.MINIO_PUBLIC_ENDPOINT ?? "http://localhost:9000";
+
+// Create HTTPS agent with connection pooling for large file streaming
+const httpsAgent = new Agent({
+  keepAlive: true,
+  maxSockets: 50,
+  maxFreeSockets: 10,
+  timeout: 60000,
+  freeSocketTimeout: 30000,
+});
 
 export const s3 = new S3Client({
   endpoint,
@@ -23,6 +33,12 @@ export const s3 = new S3Client({
     secretAccessKey: process.env.MINIO_ROOT_PASSWORD ?? "changeme_minio",
   },
   forcePathStyle: true,
+  // Optimized for large file streaming
+  requestHandler: {
+    httpsAgent,
+  },
+  // Increase timeout for large file operations
+  maxAttempts: 3,
 });
 
 export async function ensureBucket(
