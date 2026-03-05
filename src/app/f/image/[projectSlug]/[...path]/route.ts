@@ -48,9 +48,24 @@ export const GET = withProjectSlugCors<{ projectSlug: string; path: string[] }>(
 
     const allowedQueryKeys = ["format", "w", "h", "q", "blur", "fit"];
 
+    console.log('[image] Request details:', {
+      projectSlug,
+      filePath,
+      projectId: project.id,
+      visibility: project.visibility,
+      hasTransform,
+      queryParams: Object.fromEntries(searchParams)
+    });
+
     if (project.visibility === "private") {
+      console.log('[image] Checking private project access');
+      
       const okKey = await requireReadAccess(req, project.id);
+      console.log('[image] API key access result:', { okKey });
+      
       if (!okKey) {
+        console.log('[image] API key failed, trying signed token');
+        
         const okToken = await requireSignedToken(req, {
           kind: "image",
           projectSlug,
@@ -58,8 +73,16 @@ export const GET = withProjectSlugCors<{ projectSlug: string; path: string[] }>(
           path: filePath,
           allowedQueryKeys,
         });
-        if (!okToken) return unauthorized();
+        
+        console.log('[image] Signed token access result:', { okToken });
+        
+        if (!okToken) {
+          console.log('[image] Both authentication methods failed, returning 401');
+          return unauthorized();
+        }
       }
+    } else {
+      console.log('[image] Public project, no auth required');
     }
 
     if (hasTransform) {
