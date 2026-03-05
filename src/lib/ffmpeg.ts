@@ -21,7 +21,24 @@ export async function transcodeBuffer(
   const inputFile = path.join(tmpDir, `${id}${inputExt}`);
   const outputFile = path.join(tmpDir, `${id}.${outputFormat}`);
 
-  fs.writeFileSync(inputFile, inputBuffer);
+  try {
+    fs.writeFileSync(inputFile, inputBuffer);
+    
+    // Validate the input file was written correctly
+    const stats = fs.statSync(inputFile);
+    if (stats.size === 0) {
+      throw new Error('Input file is empty');
+    }
+    
+    // Verify file integrity with a quick read
+    const verifyBuffer = fs.readFileSync(inputFile);
+    if (verifyBuffer.length !== inputBuffer.length) {
+      throw new Error('Input file corruption detected');
+    }
+  } catch (writeErr) {
+    try { fs.unlinkSync(inputFile); } catch { /* ignore */ }
+    throw new Error(`Failed to write input file: ${writeErr instanceof Error ? writeErr.message : 'Unknown error'}`);
+  }
 
   try {
     await execFileAsync("ffmpeg", [
@@ -30,6 +47,17 @@ export async function transcodeBuffer(
       outputFile,
     ]);
     return fs.readFileSync(outputFile);
+  } catch (ffmpegErr) {
+    // Check if input file still exists and is readable
+    try {
+      const stats = fs.statSync(inputFile);
+      if (stats.size === 0) {
+        console.error('[ffmpeg] Input file became empty:', inputFile);
+      }
+    } catch (statErr) {
+      console.error('[ffmpeg] Input file disappeared:', inputFile, statErr);
+    }
+    throw ffmpegErr;
   } finally {
     try { fs.unlinkSync(inputFile); } catch { /* ignore */ }
     try { fs.unlinkSync(outputFile); } catch { /* ignore */ }
@@ -54,7 +82,28 @@ export function transcodeStream(
   const id = `contento-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const inputFile = path.join(tmpDir, `${id}${inputExt}`);
 
-  fs.writeFileSync(inputFile, inputBuffer);
+  try {
+    fs.writeFileSync(inputFile, inputBuffer);
+    
+    // Validate the input file was written correctly
+    const stats = fs.statSync(inputFile);
+    if (stats.size === 0) {
+      throw new Error('Input file is empty');
+    }
+    
+    // Verify file integrity
+    const verifyBuffer = fs.readFileSync(inputFile);
+    if (verifyBuffer.length !== inputBuffer.length) {
+      throw new Error('Input file corruption detected');
+    }
+  } catch (writeErr) {
+    try { fs.unlinkSync(inputFile); } catch { /* ignore */ }
+    return new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.error(new Error(`Failed to write input file: ${writeErr instanceof Error ? writeErr.message : 'Unknown error'}`));
+      }
+    });
+  }
 
   const ffmpegArgs = [
     "-y",
@@ -83,6 +132,15 @@ export function transcodeStream(
       });
 
       proc.on("error", (err) => {
+        // Check if input file still exists and is readable
+        try {
+          const stats = fs.statSync(inputFile);
+          if (stats.size === 0) {
+            console.error('[ffmpeg] Stream: Input file became empty:', inputFile);
+          }
+        } catch (statErr) {
+          console.error('[ffmpeg] Stream: Input file disappeared:', inputFile, statErr);
+        }
         controller.error(err);
         try { fs.unlinkSync(inputFile); } catch { /* ignore */ }
       });
