@@ -132,8 +132,10 @@ export const GET = withProjectSlugCors(
 
       let inputBuffer: Buffer;
       try {
+        console.log('[audio] Attempting to fetch source file:', filePath);
         const sourceStream = await getObject(project.bucketName, filePath);
         inputBuffer = await streamToBuffer(sourceStream as import("stream").Readable);
+        console.log('[audio] Successfully fetched source file, size:', inputBuffer.length);
       } catch (err) {
         await db.update(transformJobs).set({ status: "failed" }).where(eq(transformJobs.id, job.id));
         console.error("[ffmpeg] failed to fetch source:", err);
