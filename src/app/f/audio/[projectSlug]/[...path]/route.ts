@@ -20,13 +20,28 @@ export const GET = withProjectSlugCors(
     const filePath = pathSegments.join("/");
     const { searchParams } = new URL(req.url);
 
+    console.log('[audio] Request details:', {
+      projectSlug,
+      filePath,
+      projectId: project?.id,
+      visibility: project?.visibility,
+      hasFormat: !!searchParams.get("format"),
+      format: searchParams.get("format")
+    });
+
     if (!project) return Response.json({ error: "Project not found" }, { status: 404 });
 
     const allowedQueryKeys = ["format"];
 
     if (project.visibility === "private") {
+      console.log('[audio] Checking private project access');
+      
       const okKey = await requireReadAccess(req, project.id);
+      console.log('[audio] API key access result:', { okKey });
+      
       if (!okKey) {
+        console.log('[audio] API key failed, trying signed token');
+        
         const okToken = await requireSignedToken(req, {
           kind: "audio",
           projectSlug,
@@ -34,8 +49,16 @@ export const GET = withProjectSlugCors(
           path: filePath,
           allowedQueryKeys,
         });
-        if (!okToken) return unauthorized();
+        
+        console.log('[audio] Signed token access result:', { okToken });
+        
+        if (!okToken) {
+          console.log('[audio] Both authentication methods failed, returning 401');
+          return unauthorized();
+        }
       }
+    } else {
+      console.log('[audio] Public project, no auth required');
     }
 
     const format = searchParams.get("format")?.toLowerCase() ?? "";
