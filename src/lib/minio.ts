@@ -22,7 +22,6 @@ const httpsAgent = new Agent({
   maxSockets: 50,
   maxFreeSockets: 10,
   timeout: 60000,
-  freeSocketTimeout: 30000,
 });
 
 export const s3 = new S3Client({
