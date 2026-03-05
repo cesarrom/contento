@@ -25,33 +25,25 @@ export const POST = withProjectIdCors(
   async ({ req, context, project }) => {
     const { id } = await context.params;
 
-    console.log('[sign/read] Processing request for project:', id);
 
     const session = await getAdminSession();
     if (!session) {
-      console.log('[sign/read] No admin session, checking API key');
       const token = extractBearerToken(req);
       if (!token) {
-        console.log('[sign/read] No API token found');
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       const key = await validateApiKey(token, "read");
       if (!key || key.projectId !== id) {
-        console.log('[sign/read] Invalid API key or project mismatch');
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      console.log('[sign/read] API key validated successfully');
     } else {
-      console.log('[sign/read] Admin session found');
     }
 
     if (!project) {
-      console.log('[sign/read] Project not found');
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     const body = await req.json();
-    console.log('[sign/read] Request body:', body);
     
     const {
       path,
@@ -65,10 +57,8 @@ export const POST = withProjectIdCors(
       transform?: TransformRequest;
     };
 
-    console.log('path', path)
 
     if (!path?.trim()) {
-      console.log('[sign/read] Path is required but not provided');
       return NextResponse.json({ error: "path is required" }, { status: 400 });
     }
 
@@ -86,7 +76,6 @@ export const POST = withProjectIdCors(
             ? "audio"
             : "raw";
 
-    console.log('[sign/read] Determined file kind:', kind);
 
     const allowedQuery: Record<string, string> = {};
     if (transform?.format) allowedQuery.format = transform.format;
@@ -96,7 +85,6 @@ export const POST = withProjectIdCors(
     if (transform?.blur) allowedQuery.blur = String(transform.blur);
     if (transform?.fit) allowedQuery.fit = String(transform.fit);
 
-    console.log('[sign/read] Query parameters:', allowedQuery);
 
     const token = await createSignedUrlToken({
       method: "GET",
@@ -111,8 +99,6 @@ export const POST = withProjectIdCors(
     const qs = new URLSearchParams({ ...allowedQuery, token });
     const url = `${publicBase}/f/${kind}/${project.slug}/${fileKey}?${qs.toString()}`;
     
-    console.log('[sign/read] Generated signed URL:', url);
-
     return NextResponse.json({ data: { url, expiresAt } });
   }
 );
