@@ -1,4 +1,4 @@
 {
   "title": "Self-hosting",
-  "pages": ["docker-compose", "environment", "migrations"]
+  "pages": ["docker-compose", "standalone-docker", "environment", "migrations"]
 }

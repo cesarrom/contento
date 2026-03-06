@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 type DevAuthConfig = {
   devAuthEnabled: boolean;
   authentikConfigured: boolean;
+  providerName: string | null;
 };
 
 export default function LoginPage() {
@@ -21,7 +22,7 @@ export default function LoginPage() {
     void fetch("/api/dev-auth/config")
       .then((r) => r.json())
       .then((data: DevAuthConfig) => setConfig(data))
-      .catch(() => setConfig({ devAuthEnabled: false, authentikConfigured: false }));
+      .catch(() => setConfig({ devAuthEnabled: false, authentikConfigured: false, providerName: null }));
   }, []);
 
   async function handleDevLogin() {
@@ -53,8 +54,8 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           {config?.authentikConfigured ? (
-            <Button className="w-full" onClick={() => signIn("authentik", { callbackUrl: "/admin" })}>
-              Sign in with Authentik
+            <Button className="w-full" onClick={() => signIn("oidc", { callbackUrl: "/admin" })}>
+              Sign in with {config.providerName || "SSO"}
             </Button>
           ) : config?.devAuthEnabled ? (
             <div className="space-y-3">
@@ -93,7 +94,7 @@ export default function LoginPage() {
           ) : (
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
-                Auth is not configured. Set AUTHENTIK_ISSUER, AUTHENTIK_CLIENT_ID, and AUTHENTIK_CLIENT_SECRET.
+                Authentication is not configured. Set OIDC_ISSUER, OIDC_CLIENT_ID, and OIDC_CLIENT_SECRET environment variables.
               </p>
             </div>
           )}

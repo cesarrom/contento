@@ -1,0 +1,100 @@
+# Contento Single-Container Deployment
+# 
+# This compose file demonstrates running Contento as a single container
+# with embedded MinIO and imgproxy, using an external PostgreSQL database.
+#
+# Usage:
+#   1. Copy a config file:
+#      cp docker/config.production.external.yaml ./config.yaml
+#
+#   2. Edit config.yaml with your settings (or use environment variables)
+#
+#   3. Run with Docker:
+#      docker compose -f docker-compose.single.yaml up -d
+#
+#   4. Access at http://localhost:3000
+
+services:
+  # ─── PostgreSQL (optional - only if you need a local DB) ─────────────────────
+  # If using an external PostgreSQL, remove this service and set DATABASE_URL
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-contento}
+      POSTGRES_USER: ${POSTGRES_USER:-contento}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-contento}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - contento_net
+
+  # ─── Contento (Single Container) ────────────────────────────────────────────
+  contentodb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: full
+    restart: unless-stopped
+    ports:
+      - "3000:3000"   # Next.js app
+      - "9001:9001"    # MinIO console (if using embedded MinIO)
+    volumes:
+      # Mount your config file
+      - ./config.yaml:/etc/contento/config.yaml:ro
+      # Persist data (MinIO, SQLite if used)
+      - contento_data:/data
+    environment:
+      # Database - use external or the postgres service above
+      DATABASE_URL: ${DATABASE_URL:-postgresql://contento:contento@postgres:5432/contento}
+      
+      # Storage - can be overridden in config.yaml
+      # S3_ENDPOINT: ${S3_ENDPOINT:-}
+      # S3_REGION: ${S3_REGION:-us-east-1}
+      # S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      # S3_SECRET_KEY: ${S3_SECRET_KEY:-}
+      # S3_BUCKET: ${S3_BUCKET:-contento}
+      # S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-}
+      
+      # Auth - can be overridden in config.yaml
+      # OIDC_ISSUER: ${OIDC_ISSUER:-}
+      # OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      # OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      
+      # Dev auth (fallback if OIDC not configured)
+      DEV_AUTH: ${DEV_AUTH:-1}
+      DEV_AUTH_USERNAME: ${DEV_AUTH_USERNAME:-admin}
+      DEV_AUTH_PASSWORD: ${DEV_AUTH_PASSWORD:-admin}
+      DEV_AUTH_SECRET: ${DEV_AUTH_SECRET:-dev-secret-change-in-production}
+      
+      # App settings
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-this-to-a-secure-random-value}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-1}
+      
+      # imgproxy
+      IMGPROXY_KEY: ${IMGPROXY_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
+      IMGPROXY_SALT: ${IMGPROXY_SALT:-0000000000000000000000000000000000000000000000000000000000000000}
+      IMGPROXY_ALLOW_INSECURE: ${IMGPROXY_ALLOW_INSECURE:-1}
+      
+      # Debug
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - contento_net
+
+volumes:
+  postgres_data:
+  contento_data:
+
+networks:
+  contento_net:
+    driver: bridge
