@@ -1,0 +1,128 @@
+# Contento Configuration
+# This file is mounted at /etc/contento/config.yaml inside the container
+# Environment variables can be referenced using ${VAR} or ${VAR:-default} syntax
+# Environment variables always take precedence over config file values
+
+#############################################
+# DATABASE CONFIGURATION
+#############################################
+database:
+  # Type: "external" | "sqlite"
+  # - "external": Connect to an external PostgreSQL database
+  # - "sqlite": Use embedded SQLite database (no external DB required)
+  type: "external"
+  
+  # Only used when type: "external"
+  # Connection string for PostgreSQL
+  # Example: postgresql://user:password@host:5432/contento?sslmode=require
+  url: "${DATABASE_URL:-postgresql://contento:contento@postgres:5432/contento}"
+
+#############################################
+# STORAGE CONFIGURATION (S3-compatible)
+#############################################
+storage:
+  # Type: "external" | "minio"
+  # - "external": Connect to any S3-compatible storage (AWS S3, DigitalOcean Spaces, Backblaze B2, etc.)
+  # - "minio": Start embedded MinIO server
+  type: "minio"
+  
+  # S3 endpoint URL (only for type: "external")
+  # Examples:
+  #   - AWS S3: https://s3.amazonaws.com
+  #   - DigitalOcean: https://nyc3.digitaloceanspaces.com
+  #   - Backblaze: https://s3.us-west-000.backblazeb2.com
+  endpoint: "${S3_ENDPOINT:-http://localhost:9000}"
+  
+  # S3 region (optional for most providers)
+  region: "${S3_REGION:-us-east-1}"
+  
+  # S3 credentials (only for type: "external")
+  accessKey: "${S3_ACCESS_KEY:-minioadmin}"
+  secretKey: "${S3_SECRET_KEY:-changeme_minio}"
+  
+  # Bucket name - will be created if it doesn't exist
+  bucket: "${S3_BUCKET:-contento}"
+  
+  # Public endpoint for presigned URLs (only needed if different from internal endpoint)
+  # Example: https://cdn.example.com
+  publicEndpoint: "${S3_PUBLIC_ENDPOINT:-}"
+  
+  # Force path-style URLs (required for MinIO, S3-compatible local storage)
+  forcePathStyle: true
+
+#############################################
+# AUTHENTICATION / SSO CONFIGURATION
+#############################################
+auth:
+  # Type: "oidc" | "dev"
+  # - "oidc": Use any OIDC provider (Authentik, Keycloak, Auth0, Okta, Google, etc.)
+  # - "dev": Use built-in username/password authentication (development only)
+  type: "${AUTH_TYPE:-dev}"
+  
+  # OIDC Provider Configuration (only for type: "oidc")
+  oidc:
+    # Issuer URL (must end with / for Authentik)
+    # Examples:
+    #   - Authentik: https://authentik.example.com/application/o/contento/
+    #   - Keycloak: https://keycloak.example.com/realms/master
+    #   - Auth0: https://your-tenant.auth0.com/
+    issuer: "${OIDC_ISSUER:-}"
+    clientId: "${OIDC_CLIENT_ID:-contento}"
+    clientSecret: "${OIDC_CLIENT_SECRET:-}"
+  
+  # Dev Auth Configuration (only for type: "dev")
+  dev:
+    username: "${DEV_AUTH_USERNAME:-admin}"
+    password: "${DEV_AUTH_PASSWORD:-admin}"
+    # Strong secret for token signing (REQUIRED in production with type: "dev")
+    secret: "${DEV_AUTH_SECRET:-dev-auth-secret-change-in-production}"
+
+#############################################
+# IMAGE PROXY CONFIGURATION
+#############################################
+imgproxy:
+  # Type: "external" | "embedded"
+  # - "external": Connect to external imgproxy service
+  # - "embedded": Start embedded imgproxy (runs in same container)
+  type: "embedded"
+  
+  # Only used when type: "external"
+  endpoint: "${IMGPROXY_ENDPOINT:-http://localhost:8080}"
+  
+  # Security key for URL signing (REQUIRED in production)
+  # Generate with: xxd -g 2 -l 64 -p /dev/urandom | tr -d '\n'
+  key: "${IMGPROXY_KEY:-0000000000000000000000000000000000000000000000000000000000000000}"
+  salt: "${IMGPROXY_SALT:-0000000000000000000000000000000000000000000000000000000000000000}"
+  
+  # Allow unsigned URLs (only for development)
+  allowInsecure: "${IMGPROXY_ALLOW_INSECURE:-1}"
+
+#############################################
+# APPLICATION CONFIGURATION
+#############################################
+app:
+  # Public URL of the application
+  url: "${PUBLIC_URL:-http://localhost:3000}"
+  
+  # NextAuth secret for session encryption
+  # Generate with: openssl rand -base64 32
+  nextauthSecret: "${NEXTAUTH_SECRET:-changeme_nextauth_secret_32chars}"
+  
+  # Secret for signing backend URLs
+  signedUrlSecret: "${CONTENTO_SIGNED_URL_SECRET:-}"
+  
+  # Trust forwarded headers (required behind reverse proxy)
+  trustHost: "${AUTH_TRUST_HOST:-1}"
+
+#############################################
+# PORTS (for embedded services)
+#############################################
+ports:
+  # Port for the Next.js application
+  app: 3000
+  
+  # MinIO console port (only used when storage.type: "minio")
+  minioConsole: 9001
+  
+  # imgproxy port (only used when imgproxy.type: "embedded")
+  imgproxy: 8080

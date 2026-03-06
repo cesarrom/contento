@@ -1,0 +1,264 @@
+---
+title: Standalone Docker
+description: Deploy Contento as a single self-contained Docker container.
+---
+
+The standalone Docker deployment runs everything in a single container - the application, storage (MinIO), image processing (imgproxy), and optionally a database. This is the simplest way to get started.
+
+## Quick Start
+
+```bash
+# Run with default settings (uses embedded services)
+docker run -d -p 3000:3000 contentocms/contento:latest
+```
+
+That's it! Contento will start with:
+- Embedded PostgreSQL-compatible database
+- Embedded MinIO for file storage
+- Embedded imgproxy for image processing
+- Built-in admin user (`admin` / `admin`)
+
+Access at **http://localhost:3000**
+
+---
+
+## How It Works
+
+The container uses a **progressive deployment model** - it automatically starts embedded services only when you don't provide external alternatives.
+
+| If you set... | Then... |
+|---|---|
+| Nothing | All embedded services start automatically |
+| `DATABASE_URL` | Uses external PostgreSQL |
+| `S3_ENDPOINT` | Uses external S3 storage |
+| `OIDC_ISSUER` | Uses external SSO authentication |
+
+You can mix and match - e.g., use external S3 but embedded database.
+
+---
+
+## Configuration
+
+### Using Environment Variables
+
+All settings can be passed as environment variables:
+
+```bash
+docker run -d \
+  -p 3000:3000 \
+  -e DATABASE_URL="postgresql://user:pass@host:5432/contento" \
+  -e S3_ENDPOINT="https://s3.amazonaws.com" \
+  -e S3_ACCESS_KEY="your-key" \
+  -e S3_SECRET_KEY="your-secret" \
+  -e S3_BUCKET="contento" \
+  -e OIDC_ISSUER="https://your-oidc.com" \
+  -e OIDC_CLIENT_ID="contento" \
+  -e OIDC_CLIENT_SECRET="secret" \
+  -e NEXTAUTH_SECRET="your-random-secret" \
+  -e PUBLIC_URL="https://your-domain.com" \
+  contentocms/contento:latest
+```
+
+### Using Config File
+
+For complex configurations, mount a YAML config file:
+
+```bash
+docker run -d \
+  -p 3000:3000 \
+  -v ./config.yaml:/etc/contento/config.yaml:ro \
+  contentocms/contento:latest
+```
+
+Example `config.yaml`:
+
+```yaml
+storage:
+  type: "minio"
+  accessKey: "minioadmin"
+  secretKey: "changeme"
+  bucket: "contento"
+
+auth:
+  type: "dev"
+  dev:
+    username: "admin"
+    password: "admin"
+    secret: "change-me-in-production"
+
+app:
+  url: "http://localhost:3000"
+  nextauthSecret: "your-32-character-secret"
+  trustHost: "1"
+
+imgproxy:
+  type: "embedded"
+  key: "0000000000000000000000000000000000000000000000000000000000000000"
+  salt: "0000000000000000000000000000000000000000000000000000000000000000"
+  allowInsecure: "1"
+```
+
+---
+
+## External Services
+
+### External S3 Storage
+
+Connect to AWS S3, DigitalOcean Spaces, Backblaze B2, MinIO, Cloudflare R2, Wasabi, or any S3-compatible provider:
+
+```bash
+docker run -d -p 3000:3000 \
+  -e S3_ENDPOINT="https://s3.amazonaws.com" \
+  -e S3_REGION="us-east-1" \
+  -e S3_ACCESS_KEY="AKIAIOSFODNN7EXAMPLE" \
+  -e S3_SECRET_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" \
+  -e S3_BUCKET="my-contento-bucket" \
+  -e S3_PUBLIC_ENDPOINT="https://cdn.example.com" \
+  contentocms/contento:latest
+```
+
+**Supported S3 Providers:**
+
+| Provider | Endpoint | Notes |
+|----------|----------|-------|
+| AWS S3 | `https://s3.amazonaws.com` | Use `forcePathStyle: false` |
+| DigitalOcean Spaces | `https://nyc3.digitaloceanspaces.com` | |
+| Backblaze B2 | `https://s3.us-west-000.backblazeb2.com` | |
+| Wasabi | `https://s3.wasabisys.com` | |
+| Cloudflare R2 | `https://your-account.r2.cloudflarestorage.com` | |
+| MinIO (external) | `https://minio.example.com` | |
+
+### External PostgreSQL
+
+```bash
+docker run -d -p 3000:3000 \
+  -e DATABASE_URL="postgresql://user:pass@db.example.com:5432/contento?sslmode=require" \
+  contentocms/contento:latest
+```
+
+### External SSO (OIDC)
+
+Connect to Authentik, Keycloak, Auth0, Okta, Google, or any OIDC provider:
+
+```bash
+docker run -d -p 3000:3000 \
+  -e OIDC_ISSUER="https://authentik.example.com/application/o/contento/" \
+  -e OIDC_CLIENT_ID="contento" \
+  -e OIDC_CLIENT_SECRET="your-client-secret" \
+  contentocms/contento:latest
+```
+
+**Supported OIDC Providers:**
+
+| Provider | Issuer URL Example |
+|----------|---------------------|
+| Authentik | `https://authentik.example.com/application/o/contento/` |
+| Keycloak | `https://keycloak.example.com/realms/master` |
+| Auth0 | `https://your-tenant.auth0.com/` |
+| Okta | `https://your-domain.okta.com/oauth2/default` |
+| Google | `https://accounts.google.com` |
+
+---
+
+## Ports
+
+| Port | Service | Description |
+|------|---------|-------------|
+| 3000 | Next.js | Main application |
+| 9001 | MinIO Console | MinIO web console (if using embedded MinIO) |
+| 8080 | imgproxy | Image transformation (if using embedded imgproxy) |
+
+---
+
+## Volumes
+
+| Path | Description |
+|------|-------------|
+| `/etc/contento/config.yaml` | Configuration file (read-only) |
+| `/data` | Data directory - persists MinIO data |
+
+```bash
+# Persist data across restarts
+docker run -d -p 3000:3000 -v ./contento-data:/data contentocms/contento:latest
+```
+
+---
+
+## Production Deployment
+
+### Generate Required Secrets
+
+```bash
+# NextAuth secret
+openssl rand -base64 32
+
+# imgproxy key and salt
+xxd -g 2 -l 64 -p /dev/urandom | tr -d '\n'
+```
+
+### Production Example
+
+```bash
+docker run -d \
+  --name contentodb \
+  -p 3000:3000 \
+  -p 9001:9001 \
+  -v ./contento-data:/data \
+  -e DATABASE_URL="postgresql://prod_user:secure_pass@db.example.com:5432/contento?sslmode=require" \
+  -e S3_ENDPOINT="https://nyc3.digitaloceanspaces.com" \
+  -e S3_ACCESS_KEY="your-access-key" \
+  -e S3_SECRET_KEY="your-secret-key" \
+  -e S3_BUCKET="contento-media" \
+  -e S3_PUBLIC_ENDPOINT="https://cdn.example.com" \
+  -e OIDC_ISSUER="https://keycloak.example.com/realms/production" \
+  -e OIDC_CLIENT_ID="contento" \
+  -e OIDC_CLIENT_SECRET="your-oidc-secret" \
+  -e NEXTAUTH_SECRET="your-nextauth-secret" \
+  -e NEXTAUTH_URL="https://contento.example.com" \
+  -e PUBLIC_URL="https://contento.example.com" \
+  -e IMGPROXY_KEY="your-imgproxy-key" \
+  -e IMGPROXY_SALT="your-imgproxy-salt" \
+  -e NODE_ENV=production \
+  contentocms/contento:latest
+```
+
+---
+
+## Building from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/your-repo/contento.git
+cd conto
+
+# Build the image
+docker build -t contentocms/contento:latest .
+
+# Run
+docker run -d -p 3000:3000 contentocms/contento:latest
+```
+
+---
+
+## Troubleshooting
+
+### Check logs
+```bash
+docker logs contentodb
+```
+
+### Access container shell
+```bash
+docker exec -it contentodb sh
+```
+
+### Test MinIO
+```bash
+docker exec contentodb mc alias set local http://localhost:9000 minioadmin changeme_minio
+docker exec contentodb mc ls local/contento
+```
+
+### Health check
+```bash
+curl http://localhost:3000/api/health
+```

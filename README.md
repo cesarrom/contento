@@ -15,128 +15,96 @@ It provides:
 - A REST API (`/api/v1`) for projects, API keys, files, and signed URLs
 - Delivery endpoints (`/f/raw|image|audio|video/...`) that serve raw files and perform transformations through the backend
 - A public landing (`/`) and documentation (`/docs`)
-- An admin UI (`/admin`) protected by SSO (Authentik) or a local dev-auth fallback
+- An admin UI (`/admin`) protected by SSO (any OIDC provider) or a local dev-auth fallback
 
 ## Stack
 
 | Service | Role |
 |---|---|
 | **Next.js** (root) | Admin UI + public API gateway |
-| **MinIO** | S3-compatible object storage |
+| **MinIO** | S3-compatible object storage (or any S3-compatible) |
 | **imgproxy** | On-the-fly image transformation |
 | **FFmpeg** | Video/audio conversion (runs inline in the Next.js backend) |
-| **PostgreSQL** | Metadata DB (external, provided by Dokploy) |
-| **authentik** | SSO/OIDC (external, provided by Dokploy) |
-
-## Docs
-
-- **Public landing**: `/`
-- **Documentation**: `/docs`
-- **Admin UI**: `/admin`
-
-## PRDs
-
-This repo keeps lightweight Product Requirement Documents (PRDs) in `./prds/` to document
-user-facing changes.
-
-- Design system PRD: `prds/2026-03-02T1425-design-system.prd.md`
+| **PostgreSQL** | Metadata DB |
+| **Any OIDC** | SSO via Authentik, Keycloak, Auth0, Okta, etc. |
 
 ## Quick Start
 
-## Prerequisites
+### Option 1: Single Container (Recommended)
 
-Contento can be run on macOS, Windows, and Linux.
-
-- **Docker run (recommended)**:
-  - macOS / Windows: Docker Desktop
-  - Linux: Docker Engine + Docker Compose plugin
-
-- **Run from source**:
-  - Node.js 20+
-  - pnpm
-
-If you're on Windows, running via Docker Desktop is recommended.
-
-
-### Windows notes
-
-`./start.sh` is a Bash script.
-
-- If you have **Git Bash** installed, you can run it from Git Bash.
-- If you use **WSL2**, you can run it inside your WSL distro.
-- If you prefer not to run scripts on Windows, use the manual commands below.
-
-### 1. Environment
+The easiest way to get started - everything runs in one container:
 
 ```bash
+# Run with defaults (embedded MinIO, PostgreSQL, dev auth)
+docker run -d -p 3000:3000 contentocms/contento:latest
+```
+
+That's it! Access at http://localhost:3000
+
+- Default admin: `admin` / `admin`
+- MinIO console: http://localhost:9001
+
+For production, see the [Standalone Docker](/docs/self-hosting/standalone-docker) documentation.
+
+### Option 2: Docker Compose
+
+For more control with separate containers:
+
+```bash
+# Clone and run
+git clone https://github.com/contentocms/contento.git
+cd content
 cp .env.example .env
-# For a first run, you can leave AUTHENTIK_* unset and use the dev-auth fallback.
-# For production, fill in DATABASE_URL, NEXTAUTH_SECRET (or CONTENTO_SIGNED_URL_SECRET), AUTHENTIK_*, IMGPROXY_KEY/SALT.
-```
-
-Generate imgproxy key/salt:
-```bash
-xxd -g 2 -l 64 -p /dev/urandom | tr -d '\n'
-```
-
-### 2. Run migrations
-
-```bash
-pnpm db:migrate
-```
-
-### 3. Dev
-
-```bash
-pnpm dev
-```
-
-### 4. Docker (production)
-
-```bash
 ./start.sh
 ```
 
-`./start.sh` will create the `shared_db_net` Docker network if it doesn't exist and will start a local
-Postgres container when `DATABASE_URL` is not set.
+This starts PostgreSQL, MinIO, imgproxy, and the Contento app.
 
-If Authentik is not configured (`AUTHENTIK_*` missing), `./start.sh` enables a local **dev-auth** mode
-and prints default credentials to the console.
+See [Docker Compose](/docs/self-hosting/docker-compose) for more options.
 
-Security notes:
+## Documentation
 
-- `DEV_AUTH` is intended for local development only.
-- In production, set `IMGPROXY_KEY` and `IMGPROXY_SALT` (insecure imgproxy URLs are blocked by default).
+- **Quick Start**: [Standalone Docker](/docs/self-hosting/standalone-docker)
+- **Docker Compose**: [docker-compose](/docs/self-hosting/docker-compose)
+- **Environment Variables**: [Environment](/docs/self-hosting/environment)
+- **API Reference**: [API](/docs/api)
 
-### Manual startup (no scripts)
+## Features
 
-External Postgres (set `DATABASE_URL` first):
+- **Projects** — isolated namespaces, each maps to a storage bucket
+- **API keys** — scoped (read / write / admin), optional expiry
+- **Visibility** — public (no auth) or private (API key / signed URL)
+- **Image transformation** — resize, crop, format (webp/avif/jpg/png), quality, blur
+- **Video/Audio conversion** — via FFmpeg: on-demand, streamed to the client
+- **Signed upload URLs** — presigned PUT URLs
+- **Signed read URLs** — signed URLs with optional transformations
+- **SSO** — admin UI protected via any OIDC provider (Authentik, Keycloak, Auth0, Okta, Google)
 
-```bash
-docker network create shared_db_net || true
-docker compose up -d
-```
+## Storage Options
 
-Isolated local Postgres:
+Contento supports any S3-compatible storage:
 
-```bash
-docker network create shared_db_net || true
-docker compose --profile local up -d
-```
+| Provider | Example Endpoint |
+|---|---|
+| AWS S3 | `https://s3.amazonaws.com` |
+| DigitalOcean Spaces | `https://nyc3.digitaloceanspaces.com` |
+| Backblaze B2 | `https://s3.us-west-000.backblazeb2.com` |
+| Cloudflare R2 | `https://your-account.r2.cloudflarestorage.com` |
+| MinIO | `https://minio.example.com` |
 
-After the stack starts:
+## Authentication Options
 
-- Landing: `http://localhost:3000/`
-- Docs: `http://localhost:3000/docs`
-- Admin: `http://localhost:3000/admin`
+Contento supports any OIDC provider:
 
-## Database Workflow
+| Provider | Example Issuer |
+|---|---|
+| Authentik | `https://authentik.example.com/application/o/contento/` |
+| Keycloak | `https://keycloak.example.com/realms/master` |
+| Auth0 | `https://your-tenant.auth0.com/` |
+| Okta | `https://your-domain.okta.com/oauth2/default` |
+| Google | `https://accounts.google.com` |
 
-```bash
-# After editing src/lib/db/schema.ts:
-pnpm db:generate   # generates SQL migration files in drizzle/
-pnpm db:migrate    # applies migrations (never use db:push)
-```
+Or use built-in dev auth for development.
 
 ## API Reference
 
@@ -187,16 +155,21 @@ GET /f/:projectSlug/:path?format=webp&w=800&h=600   # image transform
 GET /f/:projectSlug/:path?format=mp3                 # audio/video convert (sync, cached)
 ```
 
-## Features
+## Development
 
-- **Projects** — isolated namespaces, each maps to a MinIO bucket
-- **API keys** — scoped (read / write / admin), optional expiry
-- **Visibility** — public (no auth) or private (API key / signed URL)
-- **Image transformation** — via imgproxy: resize, crop, format (webp/avif/jpg/png), quality, blur
-- **Video/Audio conversion** — via FFmpeg (inline): on-demand, streamed to the client, cached in MinIO
-- **Signed upload URLs** — presigned MinIO PUT URLs
-- **Signed read URLs** — imgproxy-signed (images) or MinIO presigned GET (others)
-- **SSO** — admin UI protected via authentik OIDC
+```bash
+# Install dependencies
+pnpm install
+
+# Generate migrations (after schema changes)
+pnpm db:generate
+
+# Run migrations
+pnpm db:migrate
+
+# Start dev server
+pnpm dev
+```
 
 ## Disclaimer
 

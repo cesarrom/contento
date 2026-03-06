@@ -1,0 +1,37 @@
+# Contento Minimal Configuration (Development)
+# All-in-one container with embedded MinIO and dev auth
+# Usage: Mount this as /etc/contento/config.yaml
+
+database:
+  type: "external"
+  url: "postgresql://contento:contento@host.docker.internal:5432/contento"
+
+storage:
+  type: "minio"
+  accessKey: "minioadmin"
+  secretKey: "changeme_minio"
+  bucket: "contento"
+
+auth:
+  type: "dev"
+  dev:
+    username: "admin"
+    password: "admin"
+    secret: "dev-secret-change-me"
+
+imgproxy:
+  type: "embedded"
+  key: "0000000000000000000000000000000000000000000000000000000000000000"
+  salt: "0000000000000000000000000000000000000000000000000000000000000000"
+  allowInsecure: "1"
+
+app:
+  url: "http://localhost:3000"
+  nextauthSecret: "dev-nextauth-secret-32-characters-long"
+  signedUrlSecret: ""
+  trustHost: "1"
+
+ports:
+  app: 3000
+  minioConsole: 9001
+  imgproxy: 8080

@@ -1,0 +1,41 @@
+# Contento Production Configuration (AWS S3)
+# Connect to AWS S3, external PostgreSQL, and OIDC provider
+# Usage: Mount this as /etc/contento/config.yaml and set environment variables
+
+database:
+  type: "external"
+  url: "${DATABASE_URL}"
+
+storage:
+  type: "external"
+  endpoint: "https://s3.amazonaws.com"
+  region: "${AWS_REGION:-us-east-1}"
+  accessKey: "${AWS_ACCESS_KEY_ID}"
+  secretKey: "${AWS_SECRET_ACCESS_KEY}"
+  bucket: "${S3_BUCKET:-contento}"
+  publicEndpoint: "${S3_PUBLIC_ENDPOINT}"
+  forcePathStyle: false
+
+auth:
+  type: "oidc"
+  oidc:
+    issuer: "${OIDC_ISSUER}"
+    clientId: "${OIDC_CLIENT_ID:-contento}"
+    clientSecret: "${OIDC_CLIENT_SECRET}"
+
+imgproxy:
+  type: "embedded"
+  key: "${IMGPROXY_KEY}"
+  salt: "${IMGPROXY_SALT}"
+  allowInsecure: "0"
+
+app:
+  url: "${PUBLIC_URL}"
+  nextauthSecret: "${NEXTAUTH_SECRET}"
+  signedUrlSecret: "${CONTENTO_SIGNED_URL_SECRET}"
+  trustHost: "1"
+
+ports:
+  app: 3000
+  minioConsole: 9001
+  imgproxy: 8080

@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
-import { isAuthentikConfigured, isDevAuthEnabled } from "@/lib/dev-auth";
+import { isDevAuthEnabled, isAuthentikConfigured } from "@/lib/dev-auth";
+import { isOidcConfigured, getProviderName } from "@/lib/auth";
 
 export async function GET() {
+  const devAuthEnabled = isDevAuthEnabled();
+  const oidcConfigured = isOidcConfigured();
+  
   return NextResponse.json({
-    devAuthEnabled: isDevAuthEnabled(),
-    authentikConfigured: isAuthentikConfigured(),
+    devAuthEnabled,
+    authentikConfigured: oidcConfigured,
+    providerName: oidcConfigured ? getProviderName() : null,
   });
 }
