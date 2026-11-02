@@ -32,11 +32,15 @@ It provides:
 
 ### Option 1: Single Container (Recommended)
 
-The easiest way to get started - everything runs in one container:
+The easiest way to get started: everything runs in one container. No image is published to a registry yet, so build it from source:
 
 ```bash
-# Run with defaults (embedded MinIO, PostgreSQL, dev auth)
-docker run -d -p 3000:3000 contentocms/contento:latest
+git clone https://github.com/cesarrom/contento.git
+cd contento
+
+# Build, then run with defaults (embedded MinIO, embedded SQLite, dev auth)
+docker build -t contento .
+docker run -d -p 3000:3000 contento
 ```
 
 That's it! Access at http://localhost:3000
@@ -52,8 +56,8 @@ For more control with separate containers:
 
 ```bash
 # Clone and run
-git clone https://github.com/contentocms/contento.git
-cd content
+git clone https://github.com/cesarrom/contento.git
+cd contento
 cp .env.example .env
 ./start.sh
 ```
@@ -170,6 +174,18 @@ pnpm db:migrate
 # Start dev server
 pnpm dev
 ```
+
+## Status
+
+Early (v0.1.0). The upload, signed-URL, transformation and admin flows are implemented; the `prds/` folder holds the product requirement docs for work in progress (design system, proxy routes, project CORS, AI-friendly docs), and `DOCS_PLAN.md` / `PLAN.md` track what is left.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) and [SECURITY.md](SECURITY.md).
+
+## License
+
+[MIT](LICENSE.md)
 
 ## Disclaimer
 
